@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "devsmodwithnocoms",
+  "version": "${version}",
+  "name": "Devsmodwithnocoms",
+  "description": "",
+  "authors": [
+    "r4t2"
+  ],
+  "contact": {},
+  "license": "ARR",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "io.github.r4t2.devsmodwithnocoms.Devsmodwithnocoms"
+    ],
+    "client": [
+      "io.github.r4t2.devsmodwithnocoms.client.DevsmodwithnocomsClient"
+    ]
+  },
+  "mixins": [
+    "devsmodwithnocoms.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}",
+    "java": ">=21"
+  }
+}
