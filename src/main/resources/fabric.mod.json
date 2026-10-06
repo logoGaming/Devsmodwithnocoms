@@ -12,10 +12,10 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "io.github.r4t2.devsmodwithnocoms.Devsmodwithnocoms"
+      "io.github.logogaming.devsmodwithnocoms.Devsmodwithnocoms"
     ],
     "client": [
-      "io.github.r4t2.devsmodwithnocoms.client.DevsmodwithnocomsClient"
+      "io.github.logogaming.devsmodwithnocoms.client.DevsmodwithnocomsClient"
     ]
   },
   "mixins": [

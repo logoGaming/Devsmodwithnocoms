@@ -1,4 +1,4 @@
-package io.github.r4t2.devsmodwithnocoms.logging;
+package io.github.logogaming.devsmodwithnocoms.logging;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
