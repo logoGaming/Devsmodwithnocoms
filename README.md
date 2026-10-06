@@ -35,11 +35,11 @@
 
 | Dependency | Scope | Notes |
 |---|---|---|
-| Fabric API | required | `0.116.15+1.21.1` |
+| [Fabric API](https://github.com/FabricMC/fabric-api) | required | `0.116.15+1.21.1` |
 | [Lodestone](https://github.com/LodestarMC/Lodestone) | bundled (jar-in-jar) | `1.21.1-1.7.0.5-fabric`, LGPLv3 |
-| Simple Voice Chat API | compile-only | `2.6.24` |
-| Sodium | compile-only | `mc1.21.1-0.8.13-fabric` |
-| Nuit | compile-only | `mc1.21.1-1.0.0-beta.6+fabric` |
+| [Simple Voice Chat API](https://github.com/henkelmax/simple-voice-chat) | compile-only | `2.6.24` |
+| [Sodium](https://github.com/CaffeineMC/sodium) | compile-only | `mc1.21.1-0.8.13-fabric` |
+| [Nuit](https://github.com/FlashyReese/nuit) | compile-only | `mc1.21.1-1.0.0-beta.6+fabric` |
 
 ## License
 
