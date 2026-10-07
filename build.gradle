@@ -49,8 +49,8 @@ dependencies {
     modCompileOnly "maven.modrinth:nuit:mc1.21.1-1.0.0-beta.6+fabric"
     compileOnly "de.maxhenkel.voicechat:voicechat-api:2.6.24"
 
-    modImplementation "maven.modrinth:lodestonelib:1.21.1-1.7.0.5-fabric"
-    include "maven.modrinth:lodestonelib:1.21.1-1.7.0.5-fabric"
+    modImplementation "maven.modrinth:satin-api:2.0.0"
+    include "maven.modrinth:satin-api:2.0.0"
 }
 
 processResources {
