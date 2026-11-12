@@ -14,10 +14,12 @@ uniform float SurfaceY;
 uniform vec3 LightDir;
 uniform vec3 SunDir;
 uniform float Daylight;
-uniform vec3 SplashPos;
-uniform float SplashAge;
-uniform float SplashPower;
-uniform float SplashEnter;
+uniform vec4 Ring0;
+uniform vec4 Ring1;
+uniform vec4 Ring2;
+uniform vec4 Ring3;
+uniform vec4 Ring4;
+uniform vec4 Ring5;
 uniform float ExitWater;
 uniform float WaveStrength;
 uniform float CalmFloor;
@@ -34,6 +36,9 @@ in vec2 texCoord;
 
 out vec4 fragColor;
 
+vec4 gRings[6];
+
+const float SLOPE_GAIN = 3.4;
 const float FAR_DIST = 192.0;
 const float SHAFT_DIST = 110.0;
 const int SHAFT_STEPS = 28;
@@ -89,35 +94,46 @@ void waveField(vec2 xz, out vec2 grad, out vec3 hess) {
         c += w * wave.y * wave.y;
     }
 
-    vec2 delta = xz - SplashPos.xz;
-    float r = max(length(delta), 0.6);
-    float ringRadius = 5.5 * SplashAge;
-    float width = 1.2 + SplashAge * 0.8;
-    float envelope = SplashPower * 0.35 * exp(-pow((r - ringRadius) / width, 2.0)) * exp(-SplashAge * 0.7);
-    if (envelope > 0.0001) {
-        vec2 u = delta / r;
-        float k = 2.4;
-        float phase = k * (r - ringRadius);
-        float slope = envelope * k * cos(phase);
-        float curve = -envelope * k * k * sin(phase);
-        float tangential = slope / r;
-        g += slope * u;
-        a += curve * u.x * u.x + tangential * (1.0 - u.x * u.x);
-        b += (curve - tangential) * u.x * u.y;
-        c += curve * u.y * u.y + tangential * (1.0 - u.y * u.y);
+    for (int ri = 0; ri < 6; ri++) {
+        vec4 ring = gRings[ri];
+        if (ring.w > 0.001) {
+            vec2 delta = xz - ring.xy;
+            float r = max(length(delta), 0.6);
+            float ringRadius = 5.5 * ring.z;
+            float width = 1.2 + ring.z * 0.8;
+            float envelope = ring.w * 0.35 * exp(-pow((r - ringRadius) / width, 2.0)) * exp(-ring.z * 0.7);
+            if (envelope > 0.0001) {
+                vec2 u = delta / r;
+                float k = 2.4;
+                float phase = k * (r - ringRadius);
+                float slope = envelope * k * cos(phase);
+                float curve = -envelope * k * k * sin(phase);
+                float tangential = slope / r;
+                g += slope * u;
+                a += curve * u.x * u.x + tangential * (1.0 - u.x * u.x);
+                b += (curve - tangential) * u.x * u.y;
+                c += curve * u.y * u.y + tangential * (1.0 - u.y * u.y);
+            }
+        }
     }
     grad = g;
     hess = vec3(a, b, c);
 }
 
 float splashFoam(vec2 xz) {
-    vec2 delta = xz - SplashPos.xz;
-    float r = length(delta);
-    float ringRadius = 5.5 * SplashAge;
-    float width = 0.9 + SplashAge * 0.6;
-    float ring = exp(-pow((r - ringRadius) / width, 2.0)) * exp(-SplashAge * 0.9) * SplashPower;
-    float center = exp(-r * 0.5) * exp(-SplashAge * 0.6) * SplashPower;
-    return clamp((ring + center) * (0.6 + 0.8 * valueNoise(xz * 3.0 + BrineTime)), 0.0, 1.0);
+    float total = 0.0;
+    for (int ri = 0; ri < 6; ri++) {
+        vec4 ring = gRings[ri];
+        if (ring.w > 0.001) {
+            float r = length(xz - ring.xy);
+            float ringRadius = 5.5 * ring.z;
+            float width = 0.9 + ring.z * 0.6;
+            float edge = exp(-pow((r - ringRadius) / width, 2.0)) * exp(-ring.z * 0.9);
+            float center = exp(-r * 0.5) * exp(-ring.z * 0.6);
+            total += (edge + center) * ring.w;
+        }
+    }
+    return clamp(total * (0.6 + 0.8 * valueNoise(xz * 3.0 + BrineTime)), 0.0, 1.0);
 }
 
 float ridge(float n) {
@@ -401,16 +417,12 @@ vec3 torchWater(vec3 p, vec3 viewDir, vec3 n) {
 void main() {
     gBeamPos = vec4[4](BeamPos0, BeamPos1, BeamPos2, BeamPos3);
     gBeamDir = vec3[4](BeamDir0, BeamDir1, BeamDir2, BeamDir3);
+    gRings = vec4[6](Ring0, Ring1, Ring2, Ring3, Ring4, Ring5);
     float aspect = OutSize.x / OutSize.y;
     vec2 screen = texCoord - 0.5;
     screen.x *= aspect;
     bool inWater = CameraPos.y < SurfaceY;
     vec2 uv = texCoord;
-    float plungeTime = 1.2 + 0.6 * clamp(SplashPower, 0.5, 1.5);
-    float plunge = SplashEnter * step(SplashAge, plungeTime);
-    float foam = 0.0;
-    float frontGlow = 0.0;
-    float dots = 0.0;
     float dropMask = 0.0;
 
     if (inWater) {
@@ -419,34 +431,6 @@ void main() {
                            valueNoise(field + vec2(5.0, -BrineTime * 0.4))) - 0.5;
         uv += wobble * (0.004 + 0.005 * swellEnergy(CameraPos.xz));
 
-        if (plunge > 0.5) {
-            float age = SplashAge;
-            float front = age / plungeTime * 1.5 - 0.25;
-            float tail = smoothstep(plungeTime, plungeTime * 0.7, age);
-            float lifted = smoothstep(front - 0.2, front + 0.2, texCoord.y);
-
-            vec2 drift = vec2(texCoord.x * aspect * 8.0, texCoord.y * 6.0 - age * 2.5);
-            float fine = smoothstep(0.42, 0.70, fbm3(drift) + 0.1);
-            float coarse = fbm3(vec2(texCoord.x * aspect * 1.6, texCoord.y * 1.2 - age * 0.8));
-            vec2 streakCoord = vec2(texCoord.x * aspect * 22.0, texCoord.y * 2.4 - age * 5.0);
-            float streaks = smoothstep(0.55, 0.9, valueNoise(streakCoord)) * 0.7;
-            foam = clamp(fine * coarse * 1.3 + streaks * 0.4 * coarse, 0.0, 1.0) * lifted * tail;
-
-            vec2 wobble = vec2(valueNoise(drift * 0.8 + 1.0), valueNoise(drift * 0.8 + 9.0)) - 0.5;
-            uv += wobble * 0.012 * foam;
-            uv = 0.5 + (uv - 0.5) * (1.0 - 0.07 * exp(-age * 6.0));
-
-            frontGlow = exp(-pow((texCoord.y - front) / 0.06, 2.0)) * 0.5 * tail;
-
-            vec2 bubbleCoord = vec2(texCoord.x * aspect, texCoord.y) * 36.0;
-            bubbleCoord.y -= age * 7.0;
-            vec2 cell = floor(bubbleCoord);
-            float present = step(0.3, hash(cell + 5.3));
-            vec2 center = vec2(0.5) + (vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5) * 0.5;
-            float radius = 0.12 + 0.1 * hash(cell + 1.9);
-            float bubbleDistance = length(fract(bubbleCoord) - center);
-            dots = smoothstep(radius, radius - 0.05, bubbleDistance) * present * foam * 0.8;
-        }
     } else if (ExitWater > 0.001) {
         vec2 p = vec2(texCoord.x * aspect * 5.0, (texCoord.y - ExitWater) * 2.6);
         float n = valueNoise(p) * 0.6 + valueNoise(p * 2.3 + 9.0) * 0.4;
@@ -522,7 +506,7 @@ void main() {
             vec2 slope;
             vec3 curvature;
             waveField(pos.xz, slope, curvature);
-            vec3 up = normalize(vec3(-slope.x * 2.2, 1.0, -slope.y * 2.2));
+            vec3 up = normalize(vec3(-slope.x * SLOPE_GAIN, 1.0, -slope.y * SLOPE_GAIN));
             vec3 outRay = refract(dir, -up, 1.333);
             vec3 mirror = mix(WATER_DEEP, WATER_SHALLOW * 0.5, 0.5 + 0.5 * dir.y) * mix(0.05, 1.0, Daylight);
             if (dot(outRay, outRay) < 0.001) {
@@ -589,9 +573,10 @@ void main() {
                 vec2 slope;
                 vec3 curvature;
                 waveField(pos.xz, slope, curvature);
-                float flatten = 1.0 / (1.0 + length(rel) * 0.025);
-                vec3 n = normalize(vec3(-slope.x * 2.2 * flatten, 1.0, -slope.y * 2.2 * flatten));
-                vec2 bend = clamp(n.xz * 0.02 * (0.3 + 0.7 * -dir.y), vec2(-0.015), vec2(0.015));
+                float flatten = 1.0 / (1.0 + length(rel) * 0.012);
+                vec3 n = normalize(vec3(-slope.x * SLOPE_GAIN * flatten, 1.0, -slope.y * SLOPE_GAIN * flatten));
+                float bendLimit = 0.015 + 0.01 * min(WaveStrength, 4.0);
+                vec2 bend = clamp(n.xz * 0.02 * (0.3 + 0.7 * -dir.y), vec2(-bendLimit), vec2(bendLimit));
                 vec3 seen = texture(DiffuseSampler, uv + bend).rgb * mix(0.1, 1.0, Daylight);
                 float fresnel = 0.02 + 0.98 * pow(1.0 - max(dot(-dir, n), 0.0), 5.0);
                 vec3 mirrorDir = reflect(dir, n);
@@ -651,10 +636,10 @@ void main() {
         }
     }
 
-    vec3 foamColor = mix(vec3(0.10, 0.26, 0.32), mix(vec3(0.55, 0.85, 0.92), vec3(0.92, 1.0, 1.0), foam), Daylight);
-    col = mix(col, foamColor, clamp(foam, 0.0, 1.0) * mix(0.4, 0.88, Daylight));
-    col += vec3(0.6, 0.92, 1.0) * (frontGlow * mix(0.3, 1.0, Daylight) + dots * mix(0.8, 1.0, Daylight));
-    col += vec3(0.8, 0.95, 1.0) * dropMask * 0.35;
+    float twilight = clamp(1.0 - abs(sun.y) * 4.0, 0.0, 1.0);
+    vec3 dropTint = mix(vec3(0.10, 0.30, 0.38), vec3(0.85, 0.97, 1.0), Daylight);
+    dropTint = mix(dropTint, vec3(1.0, 0.72, 0.5), twilight * 0.5);
+    col += dropTint * dropMask * mix(0.12, 0.35, Daylight);
 
     col = 1.0 - exp(-col * mix(2.0, 2.5, Daylight));
     float luma = dot(col, vec3(0.299, 0.587, 0.114));

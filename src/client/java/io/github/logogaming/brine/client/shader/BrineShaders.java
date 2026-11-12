@@ -37,10 +37,8 @@ public final class BrineShaders {
     private static final Uniform3f LIGHT_DIR = EFFECT.findUniform3f("LightDir");
     private static final Uniform3f SUN_DIR = EFFECT.findUniform3f("SunDir");
     private static final Uniform1f DAYLIGHT = EFFECT.findUniform1f("Daylight");
-    private static final Uniform3f SPLASH_POS = EFFECT.findUniform3f("SplashPos");
-    private static final Uniform1f SPLASH_AGE = EFFECT.findUniform1f("SplashAge");
-    private static final Uniform1f SPLASH_POWER = EFFECT.findUniform1f("SplashPower");
-    private static final Uniform1f SPLASH_ENTER = EFFECT.findUniform1f("SplashEnter");
+    private static final Uniform4f[] RINGS = new Uniform4f[WaterSplash.MAX_RINGS];
+    private static final float[] RING_VALUES = new float[WaterSplash.MAX_RINGS * 4];
     private static final Uniform1f EXIT_WATER = EFFECT.findUniform1f("ExitWater");
     private static final Uniform1f WAVE_STRENGTH = EFFECT.findUniform1f("WaveStrength");
     private static final Uniform1f CALM_FLOOR = EFFECT.findUniform1f("CalmFloor");
@@ -58,6 +56,9 @@ public final class BrineShaders {
         for (int i = 0; i < FlashlightBeams.MAX_BEAMS; i++) {
             BEAM_POS[i] = EFFECT.findUniform4f("BeamPos" + i);
             BEAM_DIR[i] = EFFECT.findUniform3f("BeamDir" + i);
+        }
+        for (int i = 0; i < WaterSplash.MAX_RINGS; i++) {
+            RINGS[i] = EFFECT.findUniform4f("Ring" + i);
         }
     }
 
@@ -100,10 +101,10 @@ public final class BrineShaders {
         SUN_DIR.set(SUN);
         DAYLIGHT.set(Math.max(0.0f, (float) Mth.smoothstep(Mth.clamp((height + 0.1f) / 0.55f, 0.0f, 1.0f))));
 
-        SPLASH_POS.set((float) WaterSplash.originX(), (float) BrineDimensions.SEA_LEVEL, (float) WaterSplash.originZ());
-        SPLASH_AGE.set(WaterSplash.age(level, tickDelta));
-        SPLASH_POWER.set(WaterSplash.power());
-        SPLASH_ENTER.set(WaterSplash.entering() ? 1.0f : 0.0f);
+        WaterSplash.write(level, tickDelta, RING_VALUES);
+        for (int i = 0; i < WaterSplash.MAX_RINGS; i++) {
+            RINGS[i].set(RING_VALUES[i * 4], RING_VALUES[i * 4 + 1], RING_VALUES[i * 4 + 2], RING_VALUES[i * 4 + 3]);
+        }
         EXIT_WATER.set(WaterSplash.exitAmount(level, tickDelta));
         WAVE_STRENGTH.set(BrineConfig.waveStrength());
         CALM_FLOOR.set(BrineConfig.calmFloor());

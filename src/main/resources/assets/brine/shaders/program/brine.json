@@ -261,40 +261,6 @@
             ]
         },
         {
-            "name": "SplashPos",
-            "type": "float",
-            "count": 3,
-            "values": [
-                0.0,
-                0.0,
-                0.0
-            ]
-        },
-        {
-            "name": "SplashAge",
-            "type": "float",
-            "count": 1,
-            "values": [
-                999.0
-            ]
-        },
-        {
-            "name": "SplashPower",
-            "type": "float",
-            "count": 1,
-            "values": [
-                0.0
-            ]
-        },
-        {
-            "name": "SplashEnter",
-            "type": "float",
-            "count": 1,
-            "values": [
-                0.0
-            ]
-        },
-        {
             "name": "ExitWater",
             "type": "float",
             "count": 1,
@@ -316,6 +282,72 @@
             "count": 1,
             "values": [
                 0.22
+            ]
+        },
+        {
+            "name": "Ring0",
+            "type": "float",
+            "count": 4,
+            "values": [
+                0.0,
+                0.0,
+                999.0,
+                0.0
+            ]
+        },
+        {
+            "name": "Ring1",
+            "type": "float",
+            "count": 4,
+            "values": [
+                0.0,
+                0.0,
+                999.0,
+                0.0
+            ]
+        },
+        {
+            "name": "Ring2",
+            "type": "float",
+            "count": 4,
+            "values": [
+                0.0,
+                0.0,
+                999.0,
+                0.0
+            ]
+        },
+        {
+            "name": "Ring3",
+            "type": "float",
+            "count": 4,
+            "values": [
+                0.0,
+                0.0,
+                999.0,
+                0.0
+            ]
+        },
+        {
+            "name": "Ring4",
+            "type": "float",
+            "count": 4,
+            "values": [
+                0.0,
+                0.0,
+                999.0,
+                0.0
+            ]
+        },
+        {
+            "name": "Ring5",
+            "type": "float",
+            "count": 4,
+            "values": [
+                0.0,
+                0.0,
+                999.0,
+                0.0
             ]
         }
     ]
