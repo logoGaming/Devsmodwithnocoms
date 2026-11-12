@@ -7,6 +7,8 @@ import net.fabricmc.api.ClientModInitializer;
 public class BrineClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
+        BrineConfig.load();
+        BrineCommands.register();
         BrineShaders.register();
         BrineWaterRender.register();
         WaterSplash.register();

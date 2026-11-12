@@ -19,6 +19,8 @@ uniform float SplashAge;
 uniform float SplashPower;
 uniform float SplashEnter;
 uniform float ExitWater;
+uniform float WaveStrength;
+uniform float CalmFloor;
 uniform vec4 BeamPos0;
 uniform vec4 BeamPos1;
 uniform vec4 BeamPos2;
@@ -64,7 +66,7 @@ float valueNoise(vec2 p) {
 float swellEnergy(vec2 xz) {
     float gust = smoothstep(0.36, 0.64, valueNoise(vec2(BrineTime * 0.035, 11.0)) * 0.6 + valueNoise(vec2(BrineTime * 0.011, 41.0)) * 0.4);
     float patch = smoothstep(0.25, 0.75, valueNoise(xz * 0.03 + vec2(BrineTime * 0.02, 5.0)));
-    return gust * (0.3 + 0.7 * patch);
+    return CalmFloor + (1.0 - CalmFloor) * gust * (0.3 + 0.7 * patch);
 }
 
 void waveField(vec2 xz, out vec2 grad, out vec3 hess) {
@@ -78,7 +80,7 @@ void waveField(vec2 xz, out vec2 grad, out vec3 hess) {
         float freq = 0.45 * pow(1.34, fi);
         float ang = 0.6 + sin(fi * 2.7 + 1.0) * 0.95;
         vec2 wave = vec2(cos(ang), sin(ang));
-        float amp = 0.075 * pow(freq, -1.25) * energy;
+        float amp = 0.075 * pow(freq, -1.25) * mix(energy, 0.5 + 0.5 * energy, fi / 9.0) * WaveStrength;
         float phase = dot(xz, wave) * freq + BrineTime * sqrt(freq) * 1.5 + fi * 1.9;
         g += amp * freq * cos(phase) * wave;
         float w = -amp * freq * freq * sin(phase);
