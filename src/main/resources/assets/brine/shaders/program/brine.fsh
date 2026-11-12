@@ -20,9 +20,9 @@ uniform vec4 Ring2;
 uniform vec4 Ring3;
 uniform vec4 Ring4;
 uniform vec4 Ring5;
-uniform float ExitWater;
 uniform float WaveStrength;
 uniform float CalmFloor;
+uniform float DustStyle;
 uniform vec4 BeamPos0;
 uniform vec4 BeamPos1;
 uniform vec4 BeamPos2;
@@ -41,7 +41,7 @@ vec4 gRings[6];
 const float SLOPE_GAIN = 3.4;
 const float FAR_DIST = 192.0;
 const float SHAFT_DIST = 110.0;
-const int SHAFT_STEPS = 28;
+const int SHAFT_STEPS = 36;
 const int RAY_STEPS = 24;
 const vec3 SIGMA = vec3(0.075, 0.032, 0.022);
 const vec3 PLANET_DIR = vec3(-0.45, 0.38, 0.80);
@@ -172,20 +172,6 @@ vec3 causticRGB(vec2 xz, float depth) {
 
 float caustic(vec2 xz, float depth) {
     return causticRGB(xz, depth).g;
-}
-
-float dustField(vec3 p) {
-    vec3 q = p * 3.0 + vec3(sin(BrineTime * 0.21) * 0.6, BrineTime * 0.22, cos(BrineTime * 0.17) * 0.6);
-    vec3 cell = floor(q);
-    vec3 local = fract(q);
-    vec3 id = mod(cell, 289.0);
-    float h = hash3(id);
-    if (h < 0.88) {
-        return 0.0;
-    }
-    vec3 center = vec3(hash3(id + 1.7), hash3(id + 4.1), hash3(id + 9.3));
-    float twinkle = 0.6 + 0.4 * sin(BrineTime * 2.0 + h * 60.0);
-    return smoothstep(0.4, 0.0, length(local - center)) * (0.35 + (h - 0.88) * 5.0) * twinkle;
 }
 
 float shaft(vec2 xz, float depth) {
@@ -379,6 +365,50 @@ vec3 spaceSky(vec3 origin, vec3 d, int steps) {
     return col * (1.0 - low.a) + low.rgb;
 }
 
+float dustField(vec3 p) {
+    vec3 q = p * 3.0 + vec3(sin(BrineTime * 0.21) * 0.6, BrineTime * 0.22, cos(BrineTime * 0.17) * 0.6);
+    vec3 cell = floor(q);
+    vec3 local = fract(q);
+    vec3 id = mod(cell, 289.0);
+    float h = hash3(id);
+    if (h < 0.88) {
+        return 0.0;
+    }
+    vec3 center = vec3(hash3(id + 1.7), hash3(id + 4.1), hash3(id + 9.3));
+    float twinkle = 0.6 + 0.4 * sin(BrineTime * 2.0 + h * 60.0);
+    return smoothstep(0.4, 0.0, length(local - center)) * (0.35 + (h - 0.88) * 5.0) * twinkle;
+}
+
+float quadSmooth(float v) {
+    float sx = mod(floor(gl_FragCoord.x), 2.0) < 0.5 ? 1.0 : -1.0;
+    float sy = mod(floor(gl_FragCoord.y), 2.0) < 0.5 ? 1.0 : -1.0;
+    return v + 0.5 * (dFdx(v) * sx + dFdy(v) * sy) * 0.5;
+}
+
+vec3 relativePosition(vec2 coord) {
+    float d = texture(DepthSampler, coord).r;
+    vec4 v = InvProjMat * vec4(coord * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+    v.xyz /= v.w;
+    return (CameraRot * vec4(v.xyz, 0.0)).xyz;
+}
+
+vec3 surfaceNormal(vec2 coord, vec3 rel, vec3 viewDir) {
+    vec2 texel = 1.0 / OutSize;
+    vec3 right = relativePosition(coord + vec2(texel.x, 0.0)) - rel;
+    vec3 left = rel - relativePosition(coord - vec2(texel.x, 0.0));
+    vec3 up = relativePosition(coord + vec2(0.0, texel.y)) - rel;
+    vec3 down = rel - relativePosition(coord - vec2(0.0, texel.y));
+    vec3 dx = dot(right, right) < dot(left, left) ? right : left;
+    vec3 dy = dot(up, up) < dot(down, down) ? up : down;
+    float limit = 0.12 * length(rel) + 0.25;
+    if (dot(dx, dx) > limit * limit || dot(dy, dy) > limit * limit) {
+        return -viewDir;
+    }
+    vec3 n = cross(dx, dy);
+    float len = dot(n, n);
+    return len > 1e-12 ? n * inversesqrt(len) : -viewDir;
+}
+
 vec4 gBeamPos[4];
 vec3 gBeamDir[4];
 
@@ -391,7 +421,7 @@ float torchLight(vec3 p, vec3 n, float absorb) {
             vec3 toward = toPoint / d;
             float spot = smoothstep(0.86, 0.96, dot(toward, gBeamDir[b]));
             float falloff = exp(-d * absorb) / (1.0 + d * d * 0.012);
-            lit += spot * falloff * max(dot(n, -toward), 0.0) * 2.6;
+            lit += spot * falloff * mix(0.4, 1.0, max(dot(n, -toward), 0.0)) * 2.6;
         }
     }
     return lit;
@@ -418,37 +448,8 @@ void main() {
     gBeamPos = vec4[4](BeamPos0, BeamPos1, BeamPos2, BeamPos3);
     gBeamDir = vec3[4](BeamDir0, BeamDir1, BeamDir2, BeamDir3);
     gRings = vec4[6](Ring0, Ring1, Ring2, Ring3, Ring4, Ring5);
-    float aspect = OutSize.x / OutSize.y;
-    vec2 screen = texCoord - 0.5;
-    screen.x *= aspect;
-    bool inWater = CameraPos.y < SurfaceY;
     vec2 uv = texCoord;
-    float dropMask = 0.0;
-
-    if (inWater) {
-        vec2 field = vec2(texCoord.x * aspect, texCoord.y) * 7.0;
-        vec2 wobble = vec2(valueNoise(field + vec2(BrineTime * 0.45, 0.0)),
-                           valueNoise(field + vec2(5.0, -BrineTime * 0.4))) - 0.5;
-        uv += wobble * (0.004 + 0.005 * swellEnergy(CameraPos.xz));
-
-    } else if (ExitWater > 0.001) {
-        vec2 p = vec2(texCoord.x * aspect * 5.0, (texCoord.y - ExitWater) * 2.6);
-        float n = valueNoise(p) * 0.6 + valueNoise(p * 2.3 + 9.0) * 0.4;
-        n = clamp((n - 0.25) * 1.7, 0.0, 1.0);
-        float threshold = (1.0 - sqrt(ExitWater)) * 0.7;
-        dropMask = sqrt(min(max(n - threshold, 0.0) * (1.0 + ExitWater), 1.0)) * 0.3;
-        uv = 0.5 + (uv - 0.5) * (1.0 - dropMask);
-    }
-
-    if (texture(LiveDepthSampler, texCoord).r < texture(DepthSampler, texCoord).r - 0.00002) {
-        uv = texCoord;
-    }
-    vec2 aberration = (uv - 0.5) * 0.0035;
-    vec3 scene = vec3(
-        texture(DiffuseSampler, uv + aberration).r,
-        texture(DiffuseSampler, uv).g,
-        texture(DiffuseSampler, uv - aberration).b
-    );
+    vec3 scene = texture(DiffuseSampler, uv).rgb;
     vec3 col = scene;
 
     float depth = texture(DepthSampler, uv).r;
@@ -462,12 +463,13 @@ void main() {
     vec3 pos = CameraPos + rel;
     float dist = open ? FAR_DIST : min(length(rel), FAR_DIST);
 
-    vec3 faceCross = cross(dFdx(pos), dFdy(pos));
-    vec3 normal = dot(faceCross, faceCross) > 1e-10 ? normalize(faceCross) : -dir;
+    vec3 normal = surfaceNormal(uv, rel, dir);
     if (dot(normal, -dir) < 0.0) {
         normal = -normal;
     }
 
+    vec3 camRight = CameraRot[0].xyz;
+    vec3 camUp = CameraRot[1].xyz;
     vec3 light = normalize(LightDir);
     float lightY = max(light.y, 0.2);
     vec3 sun = normalize(SunDir);
@@ -483,7 +485,7 @@ void main() {
         if (!open && pos.y < SurfaceY) {
             float depthBelow = SurfaceY - pos.y;
             vec2 surfaceXZ = pos.xz + light.xz * (depthBelow / lightY);
-            float lit = max(dot(normal, light), 0.0) * exp(-depthBelow * 0.045) * Daylight;
+            float lit = mix(0.4, 1.0, max(dot(normal, light), 0.0)) * exp(-depthBelow * 0.045) * Daylight;
             col *= 1.0 + causticRGB(surfaceXZ, depthBelow) * lit * 2.6;
         }
 
@@ -496,7 +498,7 @@ void main() {
                     vec3 torchDir = toPoint / torchDist;
                     float spot = smoothstep(0.86, 0.96, dot(torchDir, gBeamDir[b]));
                     float falloff = exp(-torchDist * 0.045) / (1.0 + torchDist * torchDist * 0.012);
-                    torchLit += spot * falloff * max(dot(normal, -torchDir), 0.0) * 2.6;
+                    torchLit += spot * falloff * mix(0.4, 1.0, max(dot(normal, -torchDir), 0.0)) * 2.6;
                 }
             }
             col += scene * vec3(1.0, 0.97, 0.9) * torchLit;
@@ -528,42 +530,93 @@ void main() {
         float jitter = interleavedNoise(gl_FragCoord.xy);
         float scatter = 0.0;
         float beam = 0.0;
-        float dust = 0.0;
+        float dustGrain = 0.0;
         for (int i = 0; i < SHAFT_STEPS; i++) {
-            float t = (float(i) + jitter) / float(SHAFT_STEPS) * marchDist;
+            float u = (float(i) + jitter * 0.3) / float(SHAFT_STEPS);
+            float t = u * u * marchDist;
+            float stepWeight = 2.0 * u * marchDist / float(SHAFT_STEPS);
             vec3 s = CameraPos + dir * t;
             float below = SurfaceY - s.y;
             if (below > 0.0) {
                 vec2 sp = s.xz + light.xz * (below / lightY);
-                scatter += shaft(sp, below) * exp(-below * 0.035);
+                scatter += shaft(sp, below) * exp(-below * 0.035) * stepWeight;
             }
-            float dustLight = 0.0;
-            if (below > 0.0) {
-                dustLight += exp(-below * 0.05) * rayGain * Daylight * 0.35;
-            }
+            float torchHere = 0.0;
             for (int b = 0; b < 4; b++) {
                 if (gBeamPos[b].w > 0.5) {
                     vec3 fromTorch = s - gBeamPos[b].xyz;
                     float along = dot(fromTorch, gBeamDir[b]);
                     if (along > 0.0) {
                         float cone = smoothstep(0.88, 0.97, along / length(fromTorch));
-                        float weight = cone * exp(-along * 0.05) / (1.0 + along * 0.08);
-                        beam += weight;
-                        dustLight += weight * 2.2;
+                        torchHere += cone * exp(-along * 0.05) / (1.0 + along * 0.08);
                     }
                 }
             }
-            if (dustLight > 0.001 && t < 48.0) {
-                dust += dustField(s) * dustLight * (1.0 - t / 48.0);
+            beam += torchHere * stepWeight;
+            if (DustStyle > 1.5) {
+                float dustLight = torchHere * 2.2;
+                if (below > 0.0) {
+                    dustLight += exp(-below * 0.05) * rayGain * Daylight * 0.35;
+                }
+                if (dustLight > 0.001 && t < 48.0) {
+                    dustGrain += dustField(s) * dustLight * (1.0 - t / 48.0) * stepWeight;
+                }
             }
         }
-        float stepLen = marchDist / float(SHAFT_STEPS);
-        scatter *= stepLen * 0.06;
-        beam *= stepLen * 0.05;
+        scatter = quadSmooth(scatter) * 0.06;
+        beam = quadSmooth(beam) * 0.05;
         float phase = henyeyGreenstein(dot(dir, light), 0.55) * 4.0 + 0.15;
         col += vec3(0.30, 0.82, 0.92) * scatter * phase * rayGain * Daylight * 1.8;
         col += vec3(0.85, 1.0, 0.95) * beam * 0.6;
-        col += vec3(0.80, 0.95, 0.90) * dust * stepLen * 0.9;
+        col += vec3(0.80, 0.95, 0.90) * dustGrain * 0.9;
+
+        float dust = 0.0;
+        float dustPasses = DustStyle < 1.5 ? 1.0 : 0.0;
+        float pixelAngle = 2.0 / (ScreenProj[1][1] * OutSize.y);
+        float dustReach = min(dist, 36.0);
+        for (int i = 0; i < 40; i++) {
+            float t = 1.0 + float(i) * 0.9;
+            if (dustPasses < 0.5 || t > dustReach) {
+                break;
+            }
+            vec3 cell = floor(CameraPos + dir * t);
+            vec3 id = mod(cell, 289.0);
+            float h = hash3(id);
+            if (h > 0.55) {
+                vec3 center = cell + vec3(hash3(id + 1.7), hash3(id + 4.1), hash3(id + 9.3));
+                center += 0.15 * vec3(sin(BrineTime * 0.7 + h * 40.0), sin(BrineTime * 0.5 + h * 17.0), sin(BrineTime * 0.6 + h * 29.0));
+                vec3 toCenter = center - CameraPos;
+                float along = dot(toCenter, dir);
+                if (along > 0.5 && along < dist) {
+                    vec3 offset = toCenter - dir * along;
+                    float miss = DustStyle > 0.5 ? max(abs(dot(offset, camRight)), abs(dot(offset, camUp))) : length(offset);
+                    float radius = 0.035 + 0.03 * hash3(id + 6.3);
+                    float feather = max(along * pixelAngle, radius * 0.4);
+                    float coverage = clamp((radius - miss) / feather + 0.5, 0.0, 1.0);
+                    float pixelsRadius = radius / along / pixelAngle;
+                    float flux = min(1.0, pixelsRadius * pixelsRadius);
+
+                    float lightAmount = 0.0;
+                    float centerBelow = SurfaceY - center.y;
+                    if (centerBelow > 0.0) {
+                        lightAmount += exp(-centerBelow * 0.05) * rayGain * Daylight * 0.35;
+                    }
+                    for (int b = 0; b < 4; b++) {
+                        if (gBeamPos[b].w > 0.5) {
+                            vec3 fromTorch = center - gBeamPos[b].xyz;
+                            float beamAlong = dot(fromTorch, gBeamDir[b]);
+                            if (beamAlong > 0.0) {
+                                float cone = smoothstep(0.88, 0.97, beamAlong / length(fromTorch));
+                                lightAmount += cone * exp(-beamAlong * 0.05) / (1.0 + beamAlong * 0.08) * 2.2;
+                            }
+                        }
+                    }
+                    float twinkle = 0.7 + 0.3 * sin(BrineTime * 2.0 + h * 60.0);
+                    dust += coverage * flux * lightAmount * twinkle * (1.0 - t / 36.0);
+                }
+            }
+        }
+        col += vec3(0.80, 0.95, 0.90) * dust * 0.8;
     } else {
         if (open) {
             col = spaceSky(CameraPos, dir, 14);
@@ -636,18 +689,6 @@ void main() {
         }
     }
 
-    float twilight = clamp(1.0 - abs(sun.y) * 4.0, 0.0, 1.0);
-    vec3 dropTint = mix(vec3(0.10, 0.30, 0.38), vec3(0.85, 0.97, 1.0), Daylight);
-    dropTint = mix(dropTint, vec3(1.0, 0.72, 0.5), twilight * 0.5);
-    col += dropTint * dropMask * mix(0.12, 0.35, Daylight);
-
     col = 1.0 - exp(-col * mix(2.0, 2.5, Daylight));
-    float luma = dot(col, vec3(0.299, 0.587, 0.114));
-    col = mix(vec3(luma), col, 1.15);
-    col = mix(col * vec3(0.82, 0.95, 1.12), col * vec3(1.05, 1.02, 0.96), smoothstep(0.2, 0.8, luma));
-
-    vec2 centered = screen;
-    col *= mix(0.5, 1.0, smoothstep(1.15, 0.3, length(centered)));
-
     fragColor = vec4(max(col, vec3(0.0)), 1.0);
 }

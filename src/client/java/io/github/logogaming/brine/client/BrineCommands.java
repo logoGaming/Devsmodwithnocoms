@@ -9,7 +9,18 @@ import net.minecraft.network.chat.Component;
 
 public final class BrineCommands {
 
+    private static final String[] DUST_NAMES = {"soft", "blocky", "grain"};
+
     private BrineCommands() {
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> dustNode(int style) {
+        return ClientCommandManager.literal(DUST_NAMES[style])
+                .executes(context -> {
+                    BrineConfig.setDustStyle(style);
+                    context.getSource().sendFeedback(Component.literal("Dust style set to " + DUST_NAMES[style]));
+                    return 1;
+                });
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> strengthNode(String name) {
@@ -32,6 +43,14 @@ public final class BrineCommands {
                 ClientCommandManager.literal("brine")
                         .then(strengthNode("strength"))
                         .then(strengthNode("waves"))
+                        .then(ClientCommandManager.literal("dust")
+                                .executes(context -> {
+                                    context.getSource().sendFeedback(Component.literal("Dust style is " + DUST_NAMES[BrineConfig.dustStyle()]));
+                                    return 1;
+                                })
+                                .then(dustNode(0))
+                                .then(dustNode(1))
+                                .then(dustNode(2)))
                         .then(ClientCommandManager.literal("calm")
                                 .executes(context -> {
                                     context.getSource().sendFeedback(Component.literal("Calm floor is " + BrineConfig.calmFloor()));

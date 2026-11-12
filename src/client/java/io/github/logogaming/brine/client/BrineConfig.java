@@ -27,6 +27,15 @@ public final class BrineConfig {
         return data.calmFloor;
     }
 
+    public static int dustStyle() {
+        return data.dustStyle;
+    }
+
+    public static void setDustStyle(int value) {
+        data.dustStyle = value;
+        save();
+    }
+
     public static void setWaveStrength(float value) {
         data.waveStrength = value;
         save();
@@ -68,5 +77,6 @@ public final class BrineConfig {
     private static final class Data {
         float waveStrength = 1.0f;
         float calmFloor = 0.22f;
+        int dustStyle = 0;
     }
 }

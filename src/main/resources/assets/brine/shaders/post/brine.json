@@ -1,6 +1,7 @@
 {
     "targets": [
-        "swap"
+        "swap",
+        "swap2"
     ],
     "passes": [
         {
@@ -9,8 +10,14 @@
             "outtarget": "swap"
         },
         {
-            "name": "blit",
+            "name": "brine:brine_post",
             "intarget": "swap",
+            "outtarget": "swap2",
+            "use_linear_filter": true
+        },
+        {
+            "name": "blit",
+            "intarget": "swap2",
             "outtarget": "minecraft:main"
         }
     ]
