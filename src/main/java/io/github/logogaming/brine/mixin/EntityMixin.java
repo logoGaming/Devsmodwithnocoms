@@ -13,7 +13,7 @@ public abstract class EntityMixin {
 
     @Inject(method = "getMaxAirSupply", at = @At("HEAD"), cancellable = true)
     private void brine$maxAirFromAttribute(CallbackInfoReturnable<Integer> cir) {
-        if ((Object) this instanceof Player player) {
+        if ((Object) this instanceof Player player && player.getAttributes() != null) {
             cir.setReturnValue(BrineOxygen.maxTicks(player));
         }
     }
