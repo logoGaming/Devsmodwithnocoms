@@ -3,6 +3,7 @@ package io.github.logogaming.brine.client.shader;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import io.github.logogaming.brine.client.BrineConfig;
 import io.github.logogaming.brine.client.WaterSplash;
+import io.github.logogaming.brine.client.hud.BrineHud;
 import io.github.logogaming.brine.world.BrineDimensions;
 import net.fabricmc.fabric.api.client.rendering.v1.DimensionRenderingRegistry;
 import net.minecraft.client.Camera;
@@ -43,6 +44,7 @@ public final class BrineShaders {
     private static final Uniform1f WAVE_STRENGTH = EFFECT.findUniform1f("WaveStrength");
     private static final Uniform1f CALM_FLOOR = EFFECT.findUniform1f("CalmFloor");
     private static final Uniform1f DUST_STYLE = EFFECT.findUniform1f("DustStyle");
+    private static final Uniform1f DROWNING = EFFECT.findUniform1f("Drowning");
     private static final Uniform4f[] BEAM_POS = new Uniform4f[FlashlightBeams.MAX_BEAMS];
     private static final Uniform3f[] BEAM_DIR = new Uniform3f[FlashlightBeams.MAX_BEAMS];
 
@@ -110,6 +112,7 @@ public final class BrineShaders {
         WAVE_STRENGTH.set(BrineConfig.waveStrength());
         CALM_FLOOR.set(BrineConfig.calmFloor());
         DUST_STYLE.set((float) BrineConfig.dustStyle());
+        DROWNING.set(BrineHud.drowning());
 
         List<FlashlightBeams.Beam> beams = FlashlightBeams.collect(client, camera, tickDelta);
         for (int i = 0; i < FlashlightBeams.MAX_BEAMS; i++) {

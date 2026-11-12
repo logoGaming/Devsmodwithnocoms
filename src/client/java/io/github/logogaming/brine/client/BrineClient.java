@@ -1,5 +1,6 @@
 package io.github.logogaming.brine.client;
 
+import io.github.logogaming.brine.client.hud.BrineHud;
 import io.github.logogaming.brine.client.shader.BrineShaders;
 import io.github.logogaming.brine.logging.BrineLogger;
 import net.fabricmc.api.ClientModInitializer;
@@ -10,6 +11,7 @@ public class BrineClient implements ClientModInitializer {
         BrineConfig.load();
         BrineCommands.register();
         BrineShaders.register();
+        BrineHud.register();
         BrineWaterRender.register();
         WaterSplash.register();
         BrineLogger.info("Client Loading..");

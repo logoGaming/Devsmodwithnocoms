@@ -1,5 +1,6 @@
 package io.github.logogaming.brine.world;
 
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.server.MinecraftServer;
@@ -20,6 +21,11 @@ public final class FirstJoinSpawn {
             ServerPlayer player = handler.getPlayer();
             if (player.getStats().getValue(Stats.CUSTOM.get(Stats.PLAY_TIME)) == 0) {
                 PENDING.add(player);
+            }
+        });
+        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+            if (!alive && newPlayer.level().dimension() != BrineDimensions.BRINE) {
+                PENDING.add(newPlayer);
             }
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> PENDING.remove(handler.getPlayer()));

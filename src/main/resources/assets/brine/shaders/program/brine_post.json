@@ -106,6 +106,14 @@
             "values": [
                 0.22
             ]
+        },
+        {
+            "name": "Drowning",
+            "type": "float",
+            "count": 1,
+            "values": [
+                0.0
+            ]
         }
     ]
 }

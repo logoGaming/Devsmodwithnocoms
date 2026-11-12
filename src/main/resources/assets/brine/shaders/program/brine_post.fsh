@@ -10,6 +10,7 @@ uniform float SurfaceY;
 uniform float ExitWater;
 uniform float Daylight;
 uniform float CalmFloor;
+uniform float Drowning;
 
 in vec2 texCoord;
 
@@ -76,6 +77,10 @@ void main() {
     col = mix(vec3(luma), col, 1.15);
     col = mix(col * vec3(0.82, 0.95, 1.12), col * vec3(1.05, 1.02, 0.96), smoothstep(0.2, 0.8, luma));
     col *= mix(0.5, 1.0, smoothstep(1.15, 0.3, length(screen)));
+
+    float tunnel = mix(1.0, smoothstep(1.3 * (1.0 - Drowning) + 0.05, 0.15, length(screen)), Drowning);
+    col = mix(vec3(dot(col, vec3(0.299, 0.587, 0.114))), col, 1.0 - 0.6 * Drowning);
+    col *= tunnel * pow(1.0 - Drowning, 1.4);
 
     col += (interleavedNoise(gl_FragCoord.xy + 17.0) - 0.5) / 255.0;
     fragColor = vec4(max(col, vec3(0.0)), 1.0);
