@@ -1,6 +1,6 @@
 <div align="center">
 
-# Devsmodwithnocoms
+# Brine
 
 [![Loaders](https://img.shields.io/badge/loaders-fabric-blue?style=for-the-badge)](#project-info)
 [![Minecraft](https://img.shields.io/badge/minecraft-1.21.1-blue?style=for-the-badge)](#project-info)
@@ -34,8 +34,8 @@
 | Loader | Fabric (Loom 1.17.21) |
 | Minecraft | 1.21.1 |
 | Java | 21 |
-| Mod ID | `devsmodwithnocoms` |
-| Group | `io.github.logogaming.devsmodwithnocoms` |
+| Mod ID | `brine` |
+| Group | `io.github.logogaming` |
 
 ### Dependencies
 

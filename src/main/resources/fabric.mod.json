@@ -1,25 +1,26 @@
 {
   "schemaVersion": 1,
-  "id": "devsmodwithnocoms",
+  "id": "brine",
   "version": "${version}",
-  "name": "Devsmodwithnocoms",
+  "name": "Brine",
   "description": "",
   "authors": [
-    "r4t2"
+    "r4t2",
+    "LogoGaming"
   ],
   "contact": {},
   "license": "ARR",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "io.github.logogaming.devsmodwithnocoms.Devsmodwithnocoms"
+      "io.github.logogaming.brine.Brine"
     ],
     "client": [
-      "io.github.logogaming.devsmodwithnocoms.client.DevsmodwithnocomsClient"
+      "io.github.logogaming.brine.client.BrineClient"
     ]
   },
   "mixins": [
-    "devsmodwithnocoms.mixins.json"
+    "brine.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${loader_version}",
