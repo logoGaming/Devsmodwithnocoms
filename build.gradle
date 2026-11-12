@@ -13,8 +13,16 @@ base {
 loom {
     splitEnvironmentSourceSets()
 
+    runs {
+        client {
+            vmArg "-Ddevauth.enabled=1"
+            environmentVariable "AMD_DEBUG", "nohyperz"
+            environmentVariable "ALSOFT_DRIVERS", "pulse,alsa"
+        }
+    }
+
     mods {
-        "devsmodwithnocoms" {
+        "brine" {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
         }
@@ -37,6 +45,10 @@ repositories {
         name = "henkelmax"
         url = "https://maven.maxhenkel.de/repository/public"
     }
+    maven {
+        name = "DevAuth"
+        url = "https://pkgs.dev.azure.com/djtheredstoner/DevAuth/_packaging/public/maven/v1"
+    }
 }
 
 dependencies {
@@ -51,6 +63,8 @@ dependencies {
 
     modImplementation "maven.modrinth:satin-api:2.0.0"
     include "maven.modrinth:satin-api:2.0.0"
+
+    modRuntimeOnly "me.djtheredstoner:DevAuth-fabric:1.2.1"
 }
 
 processResources {

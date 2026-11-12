@@ -1,0 +1,24 @@
+{
+    "targets": [
+        "swap",
+        "swap2"
+    ],
+    "passes": [
+        {
+            "name": "brine:brine",
+            "intarget": "minecraft:main",
+            "outtarget": "swap"
+        },
+        {
+            "name": "brine:brine_post",
+            "intarget": "swap",
+            "outtarget": "swap2",
+            "use_linear_filter": true
+        },
+        {
+            "name": "blit",
+            "intarget": "swap2",
+            "outtarget": "minecraft:main"
+        }
+    ]
+}

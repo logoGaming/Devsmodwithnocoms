@@ -1,0 +1,51 @@
+{
+  "has_precipitation": false,
+  "temperature": 0.8,
+  "downfall": 0.0,
+  "effects": {
+    "fog_color": 1793899,
+    "sky_color": 997959,
+    "water_color": 3115663,
+    "water_fog_color": 402990
+  },
+  "carvers": {},
+  "features": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      "minecraft:disk_sand",
+      "minecraft:disk_clay"
+    ],
+    [],
+    [],
+    [
+      "minecraft:warm_ocean_vegetation",
+      "minecraft:seagrass_warm",
+      "minecraft:sea_pickle",
+      "minecraft:kelp_warm"
+    ],
+    []
+  ],
+  "spawn_costs": {},
+  "spawners": {
+    "ambient": [],
+    "axolotls": [],
+    "creature": [],
+    "misc": [],
+    "monster": [],
+    "underground_water_creature": [],
+    "water_ambient": [
+      {
+        "type": "minecraft:tropical_fish",
+        "maxCount": 8,
+        "minCount": 4,
+        "weight": 25
+      }
+    ],
+    "water_creature": []
+  }
+}

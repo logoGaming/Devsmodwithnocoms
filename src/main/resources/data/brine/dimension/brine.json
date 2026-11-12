@@ -1,0 +1,11 @@
+{
+  "type": "brine:brine",
+  "generator": {
+    "type": "minecraft:noise",
+    "settings": "brine:brine",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "brine:reef"
+    }
+  }
+}

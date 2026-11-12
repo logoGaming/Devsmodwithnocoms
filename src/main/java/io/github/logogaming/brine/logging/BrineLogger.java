@@ -1,17 +1,17 @@
-package io.github.logogaming.devsmodwithnocoms.logging;
+package io.github.logogaming.brine.logging;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class DevsmodwithnocomsLogger {
+public final class BrineLogger {
 
     private static final String PREFIX_COLOR_HEX = "85DDFF";
-    private static final String PREFIX_TEXT = "〘Devsmodwithnocoms〙";
+    private static final String PREFIX_TEXT = "〘Brine〙";
     private static final String ANSI_RESET = "[0m";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("devsmodwithnocoms");
+    private static final Logger LOGGER = LoggerFactory.getLogger("brine");
 
-    private DevsmodwithnocomsLogger() {
+    private BrineLogger() {
     }
 
     public static void debug(String message) {
