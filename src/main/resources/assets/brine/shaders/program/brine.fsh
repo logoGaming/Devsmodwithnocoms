@@ -253,7 +253,44 @@ vec3 spaceSky(vec3 d) {
     return mix(col, clouds.rgb, clouds.a);
 }
 
+vec4 gBeamPos[4];
+vec3 gBeamDir[4];
+
+float torchLight(vec3 p, vec3 n, float absorb) {
+    float lit = 0.0;
+    for (int b = 0; b < 4; b++) {
+        if (gBeamPos[b].w > 0.5) {
+            vec3 toPoint = p - gBeamPos[b].xyz;
+            float d = max(length(toPoint), 0.01);
+            vec3 toward = toPoint / d;
+            float spot = smoothstep(0.86, 0.96, dot(toward, gBeamDir[b]));
+            float falloff = exp(-d * absorb) / (1.0 + d * d * 0.012);
+            lit += spot * falloff * max(dot(n, -toward), 0.0) * 2.6;
+        }
+    }
+    return lit;
+}
+
+vec3 torchWater(vec3 p, vec3 viewDir, vec3 n) {
+    vec3 sum = vec3(0.0);
+    for (int b = 0; b < 4; b++) {
+        if (gBeamPos[b].w > 0.5) {
+            vec3 toLight = gBeamPos[b].xyz - p;
+            float d = max(length(toLight), 0.01);
+            vec3 l = toLight / d;
+            float spot = smoothstep(0.86, 0.96, dot(-l, gBeamDir[b]));
+            float atten = 1.0 / (1.0 + d * d * 0.012);
+            float spec = pow(max(dot(reflect(viewDir, n), l), 0.0), 48.0);
+            float diffuse = max(dot(n, l), 0.0) * 0.3;
+            sum += vec3(1.0, 0.97, 0.9) * spot * atten * (spec * 3.0 + diffuse) * 2.0;
+        }
+    }
+    return sum;
+}
+
 void main() {
+    gBeamPos = vec4[4](BeamPos0, BeamPos1, BeamPos2, BeamPos3);
+    gBeamDir = vec3[4](BeamDir0, BeamDir1, BeamDir2, BeamDir3);
     float splashFade = SplashPower * exp(-SplashAge * 2.6);
     vec2 screen = texCoord - 0.5;
     screen.x *= OutSize.x / OutSize.y;
@@ -294,8 +331,6 @@ void main() {
     float rayGain = smoothstep(-0.05, 0.25, sun.y) * (0.5 + 0.5 * (1.0 - clamp(sun.y, 0.0, 1.0)));
     bool submerged = CameraPos.y < SurfaceY;
 
-    vec4 beamPos[4] = vec4[4](BeamPos0, BeamPos1, BeamPos2, BeamPos3);
-    vec3 beamDir[4] = vec3[4](BeamDir0, BeamDir1, BeamDir2, BeamDir3);
 
     if (hand) {
         col *= submerged ? vec3(0.65, 0.88, 0.95) * mix(0.55, 1.0, Daylight) : vec3(1.0);
@@ -312,11 +347,11 @@ void main() {
         if (!open) {
             float torchLit = 0.0;
             for (int b = 0; b < 4; b++) {
-                if (beamPos[b].w > 0.5) {
-                    vec3 toPoint = pos - beamPos[b].xyz;
+                if (gBeamPos[b].w > 0.5) {
+                    vec3 toPoint = pos - gBeamPos[b].xyz;
                     float torchDist = max(length(toPoint), 0.01);
                     vec3 torchDir = toPoint / torchDist;
-                    float spot = smoothstep(0.86, 0.96, dot(torchDir, beamDir[b]));
+                    float spot = smoothstep(0.86, 0.96, dot(torchDir, gBeamDir[b]));
                     float falloff = exp(-torchDist * 0.045) / (1.0 + torchDist * torchDist * 0.012);
                     torchLit += spot * falloff * max(dot(normal, -torchDir), 0.0) * 2.6;
                 }
@@ -364,9 +399,9 @@ void main() {
                 dustLight += exp(-below * 0.05) * rayGain * Daylight * 0.35;
             }
             for (int b = 0; b < 4; b++) {
-                if (beamPos[b].w > 0.5) {
-                    vec3 fromTorch = s - beamPos[b].xyz;
-                    float along = dot(fromTorch, beamDir[b]);
+                if (gBeamPos[b].w > 0.5) {
+                    vec3 fromTorch = s - gBeamPos[b].xyz;
+                    float along = dot(fromTorch, gBeamDir[b]);
                     if (along > 0.0) {
                         float cone = smoothstep(0.88, 0.97, along / length(fromTorch));
                         float weight = cone * exp(-along * 0.05) / (1.0 + along * 0.08);
@@ -402,11 +437,38 @@ void main() {
                 vec3 body = seen * vec3(0.55, 0.85, 0.95) + WATER_DEEP * 2.0 * mix(0.1, 1.0, Daylight);
                 col = mix(body, reflected, clamp(fresnel * 1.2, 0.0, 1.0));
                 col = mix(col, vec3(0.8, 0.95, 1.0) * mix(0.3, 1.0, Daylight), splashFoam(pos.xz) * 0.7);
+                col += torchWater(pos, dir, n);
+            } else {
+                col += scene * vec3(1.0, 0.97, 0.9) * torchLight(pos, normal, 0.012);
             }
             vec3 haze = mix(WATER_SHALLOW * 0.55, vec3(0.20, 0.12, 0.30), dir.y * 0.5 + 0.5) * mix(0.05, 1.0, Daylight);
             float airT = exp(-dist * 0.0035);
             col = col * airT + haze * (1.0 - airT);
         }
+
+        float airMax = min(dist, 50.0);
+        float airJitter = interleavedNoise(gl_FragCoord.xy);
+        float airBeam = 0.0;
+        float airDust = 0.0;
+        for (int i = 0; i < 16; i++) {
+            float t = (float(i) + airJitter) / 16.0 * airMax;
+            vec3 s = CameraPos + dir * t;
+            for (int b = 0; b < 4; b++) {
+                if (gBeamPos[b].w > 0.5) {
+                    vec3 fromTorch = s - gBeamPos[b].xyz;
+                    float along = dot(fromTorch, gBeamDir[b]);
+                    if (along > 0.0) {
+                        float cone = smoothstep(0.88, 0.97, along / length(fromTorch));
+                        float weight = cone * exp(-along * 0.02) / (1.0 + along * 0.05);
+                        airBeam += weight;
+                        airDust += dustField(s) * weight * 2.2 * (1.0 - t / 50.0);
+                    }
+                }
+            }
+        }
+        float airStep = airMax / 16.0;
+        col += vec3(0.85, 1.0, 0.95) * airBeam * airStep * 0.012;
+        col += vec3(0.80, 0.95, 0.90) * airDust * airStep * 0.5;
 
         vec4 sunClip = ScreenProj * vec4(transpose(mat3(CameraRot)) * sun, 0.0);
         if (sunClip.w > 0.0 && sun.y > -0.02) {

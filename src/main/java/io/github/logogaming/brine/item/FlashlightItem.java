@@ -41,9 +41,4 @@ public class FlashlightItem extends Item {
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
     }
-
-    @Override
-    public boolean isFoil(ItemStack stack) {
-        return isOn(stack);
-    }
 }
