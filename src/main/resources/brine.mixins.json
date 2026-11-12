@@ -3,7 +3,10 @@
   "minVersion": "0.8",
   "package": "io.github.logogaming.brine.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [],
+  "mixins": [
+    "EntityMixin",
+    "LivingEntityMixin"
+  ],
   "client": [
     "GuiMixin"
   ],

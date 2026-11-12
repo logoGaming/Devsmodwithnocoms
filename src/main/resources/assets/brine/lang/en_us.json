@@ -1,3 +1,5 @@
 {
-  "item.brine.flashlight": "Flashlight"
+  "item.brine.flashlight": "Flashlight",
+  "attribute.name.brine.max_oxygen": "Maximum Oxygen",
+  "attribute.name.brine.oxygen_drain_rate": "Oxygen Drain Rate"
 }
