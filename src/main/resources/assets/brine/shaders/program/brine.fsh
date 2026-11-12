@@ -196,7 +196,7 @@ vec4 stratus(vec3 d, vec3 sun, float bright) {
     if (d.y <= 0.0) {
         return vec4(0.0);
     }
-    float h = 1.0 / (d.y + 0.12);
+    float h = 1.0 / (d.y * 0.8 + 0.3);
     vec2 uv = d.xz * h;
     vec2 wind = vec2(BrineTime * 0.010, BrineTime * 0.003);
     vec2 toSun = sun.xz * 0.12 * h;
@@ -404,8 +404,11 @@ void main() {
     screen.x *= aspect;
     bool inWater = CameraPos.y < SurfaceY;
     vec2 uv = texCoord;
-    float enterFade = SplashEnter * SplashPower * exp(-SplashAge * 1.5);
-    float bubbleRim = 0.0;
+    float plungeTime = 1.2 + 0.6 * clamp(SplashPower, 0.5, 1.5);
+    float plunge = SplashEnter * step(SplashAge, plungeTime);
+    float foam = 0.0;
+    float frontGlow = 0.0;
+    float dots = 0.0;
     float dropMask = 0.0;
 
     if (inWater) {
@@ -414,25 +417,33 @@ void main() {
                            valueNoise(field + vec2(5.0, -BrineTime * 0.4))) - 0.5;
         uv += wobble * (0.004 + 0.005 * swellEnergy(CameraPos.xz));
 
-        if (enterFade > 0.01 && SplashAge < 3.0) {
-            vec2 bubbleShift = vec2(0.0);
-            for (int layer = 0; layer < 3; layer++) {
-                float fl = float(layer);
-                float scale = 9.0 + 7.0 * fl;
-                vec2 q = vec2(texCoord.x * aspect, texCoord.y) * scale;
-                q.y -= SplashAge * (0.9 + 0.7 * fl);
-                vec2 cell = floor(q);
-                vec2 local = fract(q);
-                float h = hash(cell + fl * 13.1);
-                float present = step(0.6, h);
-                vec2 center = vec2(0.5) + (vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5) * 0.4;
-                float radius = 0.16 + 0.16 * hash(cell + 1.9);
-                float d = length(local - center);
-                float inside = smoothstep(radius, radius - 0.04, d) * present;
-                bubbleShift += vec2((center - local).x / aspect, (center - local).y) / scale * 0.6 * inside;
-                bubbleRim += smoothstep(radius - 0.05, radius - 0.02, d) * smoothstep(radius + 0.01, radius - 0.01, d) * present;
-            }
-            uv += bubbleShift * enterFade;
+        if (plunge > 0.5) {
+            float age = SplashAge;
+            float front = age / plungeTime * 1.5 - 0.25;
+            float tail = smoothstep(plungeTime, plungeTime * 0.7, age);
+            float lifted = smoothstep(front - 0.2, front + 0.2, texCoord.y);
+
+            vec2 drift = vec2(texCoord.x * aspect * 8.0, texCoord.y * 6.0 - age * 2.5);
+            float fine = smoothstep(0.42, 0.70, fbm3(drift) + 0.1);
+            float coarse = fbm3(vec2(texCoord.x * aspect * 1.6, texCoord.y * 1.2 - age * 0.8));
+            vec2 streakCoord = vec2(texCoord.x * aspect * 22.0, texCoord.y * 2.4 - age * 5.0);
+            float streaks = smoothstep(0.55, 0.9, valueNoise(streakCoord)) * 0.7;
+            foam = clamp(fine * coarse * 1.3 + streaks * 0.4 * coarse, 0.0, 1.0) * lifted * tail;
+
+            vec2 wobble = vec2(valueNoise(drift * 0.8 + 1.0), valueNoise(drift * 0.8 + 9.0)) - 0.5;
+            uv += wobble * 0.012 * foam;
+            uv = 0.5 + (uv - 0.5) * (1.0 - 0.07 * exp(-age * 6.0));
+
+            frontGlow = exp(-pow((texCoord.y - front) / 0.06, 2.0)) * 0.5 * tail;
+
+            vec2 bubbleCoord = vec2(texCoord.x * aspect, texCoord.y) * 36.0;
+            bubbleCoord.y -= age * 7.0;
+            vec2 cell = floor(bubbleCoord);
+            float present = step(0.3, hash(cell + 5.3));
+            vec2 center = vec2(0.5) + (vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5) * 0.5;
+            float radius = 0.12 + 0.1 * hash(cell + 1.9);
+            float bubbleDistance = length(fract(bubbleCoord) - center);
+            dots = smoothstep(radius, radius - 0.05, bubbleDistance) * present * foam * 0.8;
         }
     } else if (ExitWater > 0.001) {
         vec2 p = vec2(texCoord.x * aspect * 5.0, (texCoord.y - ExitWater) * 2.6);
@@ -443,6 +454,9 @@ void main() {
         uv = 0.5 + (uv - 0.5) * (1.0 - dropMask);
     }
 
+    if (texture(LiveDepthSampler, texCoord).r < texture(DepthSampler, texCoord).r - 0.00002) {
+        uv = texCoord;
+    }
     vec2 aberration = (uv - 0.5) * 0.0035;
     vec3 scene = vec3(
         texture(DiffuseSampler, uv + aberration).r,
@@ -573,11 +587,17 @@ void main() {
                 vec2 slope;
                 vec3 curvature;
                 waveField(pos.xz, slope, curvature);
-                vec3 n = normalize(vec3(-slope.x * 2.2, 1.0, -slope.y * 2.2));
-                vec3 seen = texture(DiffuseSampler, uv + n.xz * 0.035).rgb * mix(0.1, 1.0, Daylight);
+                float flatten = 1.0 / (1.0 + length(rel) * 0.025);
+                vec3 n = normalize(vec3(-slope.x * 2.2 * flatten, 1.0, -slope.y * 2.2 * flatten));
+                vec2 bend = clamp(n.xz * 0.02 * (0.3 + 0.7 * -dir.y), vec2(-0.015), vec2(0.015));
+                vec3 seen = texture(DiffuseSampler, uv + bend).rgb * mix(0.1, 1.0, Daylight);
                 float fresnel = 0.02 + 0.98 * pow(1.0 - max(dot(-dir, n), 0.0), 5.0);
-                vec3 reflected = spaceSky(pos, reflect(dir, n), 7);
-                vec3 body = seen * vec3(0.55, 0.85, 0.95) + WATER_DEEP * 2.0 * mix(0.1, 1.0, Daylight);
+                vec3 mirrorDir = reflect(dir, n);
+                mirrorDir.y = max(mirrorDir.y, 0.03);
+                vec3 reflected = spaceSky(pos, normalize(mirrorDir), 7);
+                float pathLength = 16.0 / max(-dir.y, 0.12);
+                vec3 absorbed = exp(-SIGMA * 1.6 * pathLength);
+                vec3 body = seen * absorbed + WATER_SHALLOW * 0.6 * mix(0.1, 1.0, Daylight) * (1.0 - absorbed);
                 col = mix(body, reflected, clamp(fresnel * 1.2, 0.0, 1.0));
                 col = mix(col, vec3(0.8, 0.95, 1.0) * mix(0.3, 1.0, Daylight), splashFoam(pos.xz) * 0.7);
                 col += torchWater(pos, dir, n);
@@ -592,7 +612,6 @@ void main() {
         float airMax = min(dist, 50.0);
         float airJitter = interleavedNoise(gl_FragCoord.xy);
         float airBeam = 0.0;
-        float airDust = 0.0;
         for (int i = 0; i < 16; i++) {
             float t = (float(i) + airJitter) / 16.0 * airMax;
             vec3 s = CameraPos + dir * t;
@@ -604,14 +623,12 @@ void main() {
                         float cone = smoothstep(0.88, 0.97, along / length(fromTorch));
                         float weight = cone * exp(-along * 0.02) / (1.0 + along * 0.05);
                         airBeam += weight;
-                        airDust += dustField(s) * weight * 2.2 * (1.0 - t / 50.0);
                     }
                 }
             }
         }
         float airStep = airMax / 16.0;
         col += vec3(0.85, 1.0, 0.95) * airBeam * airStep * 0.012;
-        col += vec3(0.80, 0.95, 0.90) * airDust * airStep * 0.5;
 
         vec4 sunClip = ScreenProj * vec4(transpose(mat3(CameraRot)) * sun, 0.0);
         if (sunClip.w > 0.0 && sun.y > -0.02) {
@@ -632,8 +649,9 @@ void main() {
         }
     }
 
-    col += vec3(0.7, 0.92, 1.0) * bubbleRim * enterFade * 0.8;
-    col = mix(col, vec3(0.6, 0.88, 1.0), 0.25 * enterFade * smoothstep(0.3, 0.0, SplashAge));
+    vec3 foamColor = mix(vec3(0.10, 0.26, 0.32), mix(vec3(0.55, 0.85, 0.92), vec3(0.92, 1.0, 1.0), foam), Daylight);
+    col = mix(col, foamColor, clamp(foam, 0.0, 1.0) * mix(0.4, 0.88, Daylight));
+    col += vec3(0.6, 0.92, 1.0) * (frontGlow * mix(0.3, 1.0, Daylight) + dots * mix(0.8, 1.0, Daylight));
     col += vec3(0.8, 0.95, 1.0) * dropMask * 0.35;
 
     col = 1.0 - exp(-col * mix(2.0, 2.5, Daylight));

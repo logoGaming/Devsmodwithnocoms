@@ -51,7 +51,7 @@ public final class WaterSplash {
             return 0.0f;
         }
         float seconds = (level.getGameTime() + tickDelta - exitTick) / 20.0f;
-        return Mth.clamp(1.0f - seconds / 5.0f, 0.0f, 1.0f);
+        return Mth.clamp(1.0f - seconds / 2.0f, 0.0f, 1.0f);
     }
 
     public static float age(ClientLevel level, float tickDelta) {
