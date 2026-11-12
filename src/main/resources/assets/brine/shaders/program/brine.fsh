@@ -120,6 +120,21 @@ void waveField(vec2 xz, out vec2 grad, out vec3 hess) {
     hess = vec3(a, b, c);
 }
 
+float waveHeight(vec2 xz) {
+    float energy = swellEnergy(xz);
+    float height = 0.0;
+    for (int i = 0; i < 10; i++) {
+        float fi = float(i);
+        float freq = 0.45 * pow(1.34, fi);
+        float ang = 0.6 + sin(fi * 2.7 + 1.0) * 0.95;
+        vec2 wave = vec2(cos(ang), sin(ang));
+        float amp = 0.075 * pow(freq, -1.25) * mix(energy, 0.5 + 0.5 * energy, fi / 9.0) * WaveStrength;
+        float phase = dot(xz, wave) * freq + BrineTime * sqrt(freq) * 1.5 + fi * 1.9;
+        height += amp * sin(phase);
+    }
+    return height;
+}
+
 float splashFoam(vec2 xz) {
     float total = 0.0;
     for (int ri = 0; ri < 6; ri++) {
@@ -508,15 +523,28 @@ void main() {
             vec2 slope;
             vec3 curvature;
             waveField(pos.xz, slope, curvature);
-            vec3 up = normalize(vec3(-slope.x * SLOPE_GAIN, 1.0, -slope.y * SLOPE_GAIN));
-            vec3 outRay = refract(dir, -up, 1.333);
-            vec3 mirror = mix(WATER_DEEP, WATER_SHALLOW * 0.5, 0.5 + 0.5 * dir.y) * mix(0.05, 1.0, Daylight);
-            if (dot(outRay, outRay) < 0.001) {
-                col = mirror;
-            } else {
-                float escape = 1.0 - pow(1.0 - max(dot(-dir, -up), 0.0), 5.0) * 0.6;
-                col = mix(mirror, spaceSky(pos, normalize(outRay), 7), escape);
+            float calmDistance = 1.0 / (1.0 + length(rel) * 0.01);
+            vec3 upN = normalize(vec3(-slope.x * 1.6 * calmDistance, 1.0, -slope.y * 1.6 * calmDistance));
+            float cosI = clamp(dot(dir, upN), 0.0, 1.0);
+            float sinT2 = 1.333 * 1.333 * (1.0 - cosI * cosI);
+            float reflectance = 1.0;
+            vec3 transmitted = vec3(0.0);
+            if (sinT2 < 1.0) {
+                float cosT = sqrt(1.0 - sinT2);
+                float rs = pow((1.333 * cosI - cosT) / (1.333 * cosI + cosT), 2.0);
+                float rp = pow((1.333 * cosT - cosI) / (1.333 * cosT + cosI), 2.0);
+                reflectance = 0.5 * (rs + rp);
+                transmitted = spaceSky(pos, normalize(refract(dir, -upN, 1.333)), 7);
             }
+
+            vec3 mirrored = reflect(dir, -upN);
+            float cameraDepth = clamp((SurfaceY - CameraPos.y) / 70.0, 0.0, 1.0);
+            vec3 environment = mix(WATER_SHALLOW, WATER_DEEP, cameraDepth) * mix(0.5, 1.4, mirrored.y * 0.5 + 0.5) * mix(0.025, 1.3, Daylight);
+            float seabedView = smoothstep(-0.9, -0.1, mirrored.y);
+            vec3 seabed = vec3(0.18, 0.42, 0.42) * Daylight * (0.55 + 0.5 * caustic(pos.xz + mirrored.xz * 30.0, 30.0));
+            environment = mix(environment, seabed, seabedView * 0.6);
+
+            col = mix(transmitted, environment, reflectance);
             col += vec3(0.8, 0.95, 1.0) * splashFoam(pos.xz) * 0.6;
         }
 
@@ -579,40 +607,47 @@ void main() {
             if (dustPasses < 0.5 || t > dustReach) {
                 break;
             }
-            vec3 cell = floor(CameraPos + dir * t);
-            vec3 id = mod(cell, 289.0);
-            float h = hash3(id);
-            if (h > 0.55) {
-                vec3 center = cell + vec3(hash3(id + 1.7), hash3(id + 4.1), hash3(id + 9.3));
-                center += 0.15 * vec3(sin(BrineTime * 0.7 + h * 40.0), sin(BrineTime * 0.5 + h * 17.0), sin(BrineTime * 0.6 + h * 29.0));
-                vec3 toCenter = center - CameraPos;
-                float along = dot(toCenter, dir);
-                if (along > 0.5 && along < dist) {
-                    vec3 offset = toCenter - dir * along;
-                    float miss = DustStyle > 0.5 ? max(abs(dot(offset, camRight)), abs(dot(offset, camUp))) : length(offset);
-                    float radius = 0.035 + 0.03 * hash3(id + 6.3);
-                    float feather = max(along * pixelAngle, radius * 0.4);
-                    float coverage = clamp((radius - miss) / feather + 0.5, 0.0, 1.0);
-                    float pixelsRadius = radius / along / pixelAngle;
-                    float flux = min(1.0, pixelsRadius * pixelsRadius);
+            vec3 sampleBase = floor(CameraPos + dir * t - 0.5);
+            for (int cx = 0; cx < 2; cx++) {
+                for (int cy = 0; cy < 2; cy++) {
+                    for (int cz = 0; cz < 2; cz++) {
+                        vec3 cell = sampleBase + vec3(float(cx), float(cy), float(cz));
+                        vec3 id = mod(cell, 289.0);
+                        float h = hash3(id);
+                        if (h > 0.55) {
+                            vec3 center = cell + vec3(hash3(id + 1.7), hash3(id + 4.1), hash3(id + 9.3));
+                            center += 0.15 * vec3(sin(BrineTime * 0.7 + h * 40.0), sin(BrineTime * 0.5 + h * 17.0), sin(BrineTime * 0.6 + h * 29.0));
+                            vec3 toCenter = center - CameraPos;
+                            float along = dot(toCenter, dir);
+                            if (along > 0.5 && along < dist && abs(along - t) < 0.45) {
+                                vec3 offset = toCenter - dir * along;
+                                float miss = DustStyle > 0.5 ? max(abs(dot(offset, camRight)), abs(dot(offset, camUp))) : length(offset);
+                                float radius = 0.035 + 0.03 * hash3(id + 6.3);
+                                float feather = max(along * pixelAngle, radius * 0.4);
+                                float coverage = clamp((radius - miss) / feather + 0.5, 0.0, 1.0);
+                                float pixelsRadius = radius / along / pixelAngle;
+                                float flux = min(1.0, pixelsRadius * pixelsRadius);
 
-                    float lightAmount = 0.0;
-                    float centerBelow = SurfaceY - center.y;
-                    if (centerBelow > 0.0) {
-                        lightAmount += exp(-centerBelow * 0.05) * rayGain * Daylight * 0.35;
-                    }
-                    for (int b = 0; b < 4; b++) {
-                        if (gBeamPos[b].w > 0.5) {
-                            vec3 fromTorch = center - gBeamPos[b].xyz;
-                            float beamAlong = dot(fromTorch, gBeamDir[b]);
-                            if (beamAlong > 0.0) {
-                                float cone = smoothstep(0.88, 0.97, beamAlong / length(fromTorch));
-                                lightAmount += cone * exp(-beamAlong * 0.05) / (1.0 + beamAlong * 0.08) * 2.2;
+                                float lightAmount = 0.0;
+                                float centerBelow = SurfaceY - center.y;
+                                if (centerBelow > 0.0) {
+                                    lightAmount += exp(-centerBelow * 0.05) * rayGain * Daylight * 0.35;
+                                }
+                                for (int b = 0; b < 4; b++) {
+                                    if (gBeamPos[b].w > 0.5) {
+                                        vec3 fromTorch = center - gBeamPos[b].xyz;
+                                        float beamAlong = dot(fromTorch, gBeamDir[b]);
+                                        if (beamAlong > 0.0) {
+                                            float cone = smoothstep(0.88, 0.97, beamAlong / length(fromTorch));
+                                            lightAmount += cone * exp(-beamAlong * 0.05) / (1.0 + beamAlong * 0.08) * 2.2;
+                                        }
+                                    }
+                                }
+                                float twinkle = 0.7 + 0.3 * sin(BrineTime * 2.0 + h * 60.0);
+                                dust += coverage * flux * lightAmount * twinkle * max(1.0 - along / 36.0, 0.0);
                             }
                         }
                     }
-                    float twinkle = 0.7 + 0.3 * sin(BrineTime * 2.0 + h * 60.0);
-                    dust += coverage * flux * lightAmount * twinkle * (1.0 - t / 36.0);
                 }
             }
         }
@@ -625,7 +660,11 @@ void main() {
             if (abs(pos.y - SurfaceY) < 0.5 && dir.y < 0.0) {
                 vec2 slope;
                 vec3 curvature;
-                waveField(pos.xz, slope, curvature);
+                vec2 wavePos = pos.xz;
+                for (int k = 0; k < 2; k++) {
+                    wavePos = pos.xz + dir.xz * (waveHeight(wavePos) / min(dir.y, -0.08));
+                }
+                waveField(wavePos, slope, curvature);
                 float flatten = 1.0 / (1.0 + length(rel) * 0.012);
                 vec3 n = normalize(vec3(-slope.x * SLOPE_GAIN * flatten, 1.0, -slope.y * SLOPE_GAIN * flatten));
                 float bendLimit = 0.015 + 0.01 * min(WaveStrength, 4.0);
@@ -639,6 +678,12 @@ void main() {
                 vec3 absorbed = exp(-SIGMA * 1.6 * pathLength);
                 vec3 body = seen * absorbed + WATER_SHALLOW * 0.6 * mix(0.1, 1.0, Daylight) * (1.0 - absorbed);
                 col = mix(body, reflected, clamp(fresnel * 1.2, 0.0, 1.0));
+                vec2 micro = vec2(valueNoise(wavePos * 5.0 + vec2(BrineTime * 0.8, 0.0)),
+                                  valueNoise(wavePos * 5.0 + vec2(7.0, -BrineTime * 0.7))) - 0.5;
+                vec3 glintDir = reflect(dir, normalize(n + vec3(micro.x, 0.0, micro.y) * 0.5));
+                float sunGlint = pow(max(dot(glintDir, sun), 0.0), 700.0) * 18.0 * smoothstep(-0.02, 0.12, sun.y);
+                float moonGlint = pow(max(dot(glintDir, -sun), 0.0), 700.0) * 4.0 * smoothstep(-0.02, 0.12, -sun.y);
+                col += vec3(1.0, 0.96, 0.85) * (sunGlint + moonGlint);
                 col = mix(col, vec3(0.8, 0.95, 1.0) * mix(0.3, 1.0, Daylight), splashFoam(pos.xz) * 0.7);
                 col += torchWater(pos, dir, n);
             } else {
