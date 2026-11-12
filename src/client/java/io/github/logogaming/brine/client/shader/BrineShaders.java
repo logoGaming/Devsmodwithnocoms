@@ -39,6 +39,8 @@ public final class BrineShaders {
     private static final Uniform3f SPLASH_POS = EFFECT.findUniform3f("SplashPos");
     private static final Uniform1f SPLASH_AGE = EFFECT.findUniform1f("SplashAge");
     private static final Uniform1f SPLASH_POWER = EFFECT.findUniform1f("SplashPower");
+    private static final Uniform1f SPLASH_ENTER = EFFECT.findUniform1f("SplashEnter");
+    private static final Uniform1f EXIT_WATER = EFFECT.findUniform1f("ExitWater");
     private static final Uniform4f[] BEAM_POS = new Uniform4f[FlashlightBeams.MAX_BEAMS];
     private static final Uniform3f[] BEAM_DIR = new Uniform3f[FlashlightBeams.MAX_BEAMS];
 
@@ -98,6 +100,8 @@ public final class BrineShaders {
         SPLASH_POS.set((float) WaterSplash.originX(), (float) BrineDimensions.SEA_LEVEL, (float) WaterSplash.originZ());
         SPLASH_AGE.set(WaterSplash.age(level, tickDelta));
         SPLASH_POWER.set(WaterSplash.power());
+        SPLASH_ENTER.set(WaterSplash.entering() ? 1.0f : 0.0f);
+        EXIT_WATER.set(WaterSplash.exitAmount(level, tickDelta));
 
         List<FlashlightBeams.Beam> beams = FlashlightBeams.collect(client, camera, tickDelta);
         for (int i = 0; i < FlashlightBeams.MAX_BEAMS; i++) {

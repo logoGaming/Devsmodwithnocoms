@@ -17,6 +17,8 @@ uniform float Daylight;
 uniform vec3 SplashPos;
 uniform float SplashAge;
 uniform float SplashPower;
+uniform float SplashEnter;
+uniform float ExitWater;
 uniform vec4 BeamPos0;
 uniform vec4 BeamPos1;
 uniform vec4 BeamPos2;
@@ -116,18 +118,38 @@ float splashFoam(vec2 xz) {
     return clamp((ring + center) * (0.6 + 0.8 * valueNoise(xz * 3.0 + BrineTime)), 0.0, 1.0);
 }
 
+float ridge(float n) {
+    float r = abs(abs(n * 2.0 - 1.0) * 2.0 - 1.0);
+    return r * r;
+}
+
+float causticWeb(vec2 p, float large, float t) {
+    const mat2 turn = mat2(-0.7374, -0.6755, 0.6755, -0.7374);
+    const vec2 sizes[3] = vec2[](vec2(0.55, 1.9), vec2(1.9, 0.55), vec2(1.1, 1.1));
+    float sum = 0.0;
+    for (int i = 0; i < 3; i++) {
+        p = turn * p;
+        sum += ridge(valueNoise(p * sizes[i] + large * 0.5 + t));
+    }
+    return exp((1.0 + 5.0 * sqrt(large)) * (sum / 3.0 - 0.5));
+}
+
 vec3 causticRGB(vec2 xz, float depth) {
     vec2 slope;
     vec3 curvature;
     waveField(xz, slope, curvature);
-    float a = curvature.x;
-    float b = curvature.y;
-    float c = curvature.z;
-    float soft = 0.05 + depth * 0.0035;
-    vec3 f = vec3(0.2415, 0.2498, 0.2585) * depth;
-    vec3 det = (1.0 + f * a) * (1.0 + f * c) - f * f * b * b;
-    vec3 focus = 1.0 / (abs(det) + soft);
-    return pow(clamp((focus - 0.8) / 5.0, 0.0, 1.0), vec3(1.2)) * 2.3 + 0.05;
+    float energy = swellEnergy(xz);
+    vec2 shifted = xz + slope * depth * 0.7;
+    float large = max(valueNoise(shifted * 0.02), 0.1);
+    float t = BrineTime * 0.05 * (0.4 + energy);
+    float spread = 0.004 * depth;
+    vec3 web = vec3(
+        causticWeb(shifted - vec2(spread, 0.0), large, t),
+        causticWeb(shifted, large, t),
+        causticWeb(shifted + vec2(spread, 0.0), large, t)
+    );
+    float strength = 0.3 + 0.7 * min(energy * 1.5, 1.0);
+    return mix(vec3(0.35), min(web, vec3(4.0)) * 0.6, strength);
 }
 
 float caustic(vec2 xz, float depth) {
@@ -196,7 +218,85 @@ vec4 stratus(vec3 d, vec3 sun, float bright) {
     return vec4(col, alpha);
 }
 
-vec3 spaceSky(vec3 d) {
+float fbm3(vec2 p) {
+    float amplitude = 0.5;
+    float sum = 0.0;
+    for (int i = 0; i < 3; i++) {
+        sum += amplitude * valueNoise(p);
+        p = p * 2.03 + vec2(17.0, 9.0);
+        amplitude *= 0.5;
+    }
+    return sum;
+}
+
+float volumeNoise(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    vec3 u = f * f * (3.0 - 2.0 * f);
+    return mix(
+        mix(mix(hash3(i), hash3(i + vec3(1.0, 0.0, 0.0)), u.x),
+            mix(hash3(i + vec3(0.0, 1.0, 0.0)), hash3(i + vec3(1.0, 1.0, 0.0)), u.x), u.y),
+        mix(mix(hash3(i + vec3(0.0, 0.0, 1.0)), hash3(i + vec3(1.0, 0.0, 1.0)), u.x),
+            mix(hash3(i + vec3(0.0, 1.0, 1.0)), hash3(i + vec3(1.0, 1.0, 1.0)), u.x), u.y),
+        u.z);
+}
+
+const float CLOUD_BASE = 160.0;
+const float CLOUD_THICK = 55.0;
+
+float cumulusDensity(vec3 p, bool detailed) {
+    float h = clamp((p.y - CLOUD_BASE) / CLOUD_THICK, 0.0, 1.0);
+    float profile = smoothstep(0.0, 0.18, h) * smoothstep(1.0, 0.5, h);
+    vec2 wind = vec2(BrineTime * 0.9, BrineTime * 0.35);
+    float shape = smoothstep(0.50, 0.70, fbm3((p.xz + wind) * 0.0115));
+    float density = shape * profile;
+    if (detailed && density > 0.0) {
+        float detail = volumeNoise(p * 0.07 + vec3(wind.x * 0.05, 0.0, wind.y * 0.05)) * 0.65 + volumeNoise(p * 0.17) * 0.35;
+        density = max(density - detail * 0.5 * (1.0 - 0.5 * density), 0.0);
+    }
+    return density;
+}
+
+vec4 cumulus(vec3 origin, vec3 d, vec3 sun, vec3 lightCol, vec3 ambient, int steps) {
+    if (d.y < 0.03 || origin.y > CLOUD_BASE + CLOUD_THICK) {
+        return vec4(0.0);
+    }
+    float t0 = max((CLOUD_BASE - origin.y) / d.y, 0.0);
+    float t1 = (CLOUD_BASE + CLOUD_THICK - origin.y) / d.y;
+    float len = min(t1 - t0, 260.0);
+    if (len <= 0.0) {
+        return vec4(0.0);
+    }
+    float dt = len / float(steps);
+    float jitter = interleavedNoise(gl_FragCoord.xy);
+    float phase = 0.3 + henyeyGreenstein(dot(d, sun), 0.55) * 2.0;
+    float transmittance = 1.0;
+    vec3 light = vec3(0.0);
+    for (int i = 0; i < steps; i++) {
+        vec3 p = origin + d * (t0 + (float(i) + jitter) * dt);
+        float density = cumulusDensity(p, true);
+        if (density > 0.004) {
+            float shadow = 0.0;
+            for (int j = 0; j < 3; j++) {
+                shadow += cumulusDensity(p + sun * (float(j) + 1.0) * 9.0, false);
+            }
+            float powder = 1.0 - exp(-8.0 * density);
+            float height = clamp((p.y - CLOUD_BASE) / CLOUD_THICK, 0.0, 1.0);
+            vec3 direct = lightCol * exp(-shadow * 1.4) * (0.55 + 0.45 * powder) * phase;
+            vec3 indirect = ambient * (0.45 + 0.55 * height);
+            float alpha = 1.0 - exp(-density * dt * 0.09);
+            light += transmittance * alpha * (direct + indirect);
+            transmittance *= 1.0 - alpha;
+            if (transmittance < 0.02) {
+                break;
+            }
+        }
+    }
+    float fade = exp(-t0 * 0.0035);
+    return vec4(light * fade, (1.0 - transmittance) * fade);
+}
+
+vec3 spaceSky(vec3 origin, vec3 d, int steps) {
     float up = clamp(d.y, -1.0, 1.0);
     float bright = mix(0.1, 1.0, Daylight);
     vec3 horizon = WATER_SHALLOW * 0.9 * bright;
@@ -249,8 +349,16 @@ vec3 spaceSky(vec3 d) {
         col += vec3(0.10, 0.36, 0.46) * halo * halo * 0.7 * mix(0.4, 1.0, Daylight);
     }
 
-    vec4 clouds = stratus(d, sun, mix(0.16, 1.0, Daylight));
-    return mix(col, clouds.rgb, clouds.a);
+    vec4 high = stratus(d, sun, mix(0.16, 1.0, Daylight));
+    col = mix(col, high.rgb, high.a);
+
+    float sunUpLight = smoothstep(-0.05, 0.25, sun.y);
+    float moonUpLight = smoothstep(-0.05, 0.25, -sun.y);
+    vec3 lightCol = mix(vec3(1.0, 0.78, 0.6), vec3(0.95, 1.0, 1.0), clamp(sun.y, 0.0, 1.0)) * 2.2 * sunUpLight
+            + vec3(0.25, 0.38, 0.55) * 0.35 * moonUpLight;
+    vec3 ambient = (WATER_SHALLOW * 0.9 + vec3(0.12, 0.16, 0.22)) * mix(0.1, 1.0, Daylight);
+    vec4 low = cumulus(origin, d, sun, lightCol, ambient, steps);
+    return col * (1.0 - low.a) + low.rgb;
 }
 
 vec4 gBeamPos[4];
@@ -291,15 +399,50 @@ vec3 torchWater(vec3 p, vec3 viewDir, vec3 n) {
 void main() {
     gBeamPos = vec4[4](BeamPos0, BeamPos1, BeamPos2, BeamPos3);
     gBeamDir = vec3[4](BeamDir0, BeamDir1, BeamDir2, BeamDir3);
-    float splashFade = SplashPower * exp(-SplashAge * 2.6);
+    float aspect = OutSize.x / OutSize.y;
     vec2 screen = texCoord - 0.5;
-    screen.x *= OutSize.x / OutSize.y;
-    float screenRadius = length(screen);
+    screen.x *= aspect;
+    bool inWater = CameraPos.y < SurfaceY;
     vec2 uv = texCoord;
-    if (splashFade > 0.01 && SplashAge < 2.5) {
-        float ripple = sin(screenRadius * 30.0 - SplashAge * 16.0);
-        uv += normalize(screen + vec2(1e-5)) * ripple * 0.012 * splashFade * smoothstep(1.2, 0.1, screenRadius) * vec2(OutSize.y / OutSize.x, 1.0);
+    float enterFade = SplashEnter * SplashPower * exp(-SplashAge * 1.5);
+    float bubbleRim = 0.0;
+    float dropMask = 0.0;
+
+    if (inWater) {
+        vec2 field = vec2(texCoord.x * aspect, texCoord.y) * 7.0;
+        vec2 wobble = vec2(valueNoise(field + vec2(BrineTime * 0.45, 0.0)),
+                           valueNoise(field + vec2(5.0, -BrineTime * 0.4))) - 0.5;
+        uv += wobble * (0.004 + 0.005 * swellEnergy(CameraPos.xz));
+
+        if (enterFade > 0.01 && SplashAge < 3.0) {
+            vec2 bubbleShift = vec2(0.0);
+            for (int layer = 0; layer < 3; layer++) {
+                float fl = float(layer);
+                float scale = 9.0 + 7.0 * fl;
+                vec2 q = vec2(texCoord.x * aspect, texCoord.y) * scale;
+                q.y -= SplashAge * (0.9 + 0.7 * fl);
+                vec2 cell = floor(q);
+                vec2 local = fract(q);
+                float h = hash(cell + fl * 13.1);
+                float present = step(0.6, h);
+                vec2 center = vec2(0.5) + (vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5) * 0.4;
+                float radius = 0.16 + 0.16 * hash(cell + 1.9);
+                float d = length(local - center);
+                float inside = smoothstep(radius, radius - 0.04, d) * present;
+                bubbleShift += vec2((center - local).x / aspect, (center - local).y) / scale * 0.6 * inside;
+                bubbleRim += smoothstep(radius - 0.05, radius - 0.02, d) * smoothstep(radius + 0.01, radius - 0.01, d) * present;
+            }
+            uv += bubbleShift * enterFade;
+        }
+    } else if (ExitWater > 0.001) {
+        vec2 p = vec2(texCoord.x * aspect * 5.0, (texCoord.y - ExitWater) * 2.6);
+        float n = valueNoise(p) * 0.6 + valueNoise(p * 2.3 + 9.0) * 0.4;
+        n = clamp((n - 0.25) * 1.7, 0.0, 1.0);
+        float threshold = (1.0 - sqrt(ExitWater)) * 0.7;
+        dropMask = sqrt(min(max(n - threshold, 0.0) * (1.0 + ExitWater), 1.0)) * 0.3;
+        uv = 0.5 + (uv - 0.5) * (1.0 - dropMask);
     }
+
     vec2 aberration = (uv - 0.5) * 0.0035;
     vec3 scene = vec3(
         texture(DiffuseSampler, uv + aberration).r,
@@ -370,7 +513,7 @@ void main() {
                 col = mirror;
             } else {
                 float escape = 1.0 - pow(1.0 - max(dot(-dir, -up), 0.0), 5.0) * 0.6;
-                col = mix(mirror, spaceSky(normalize(outRay)), escape);
+                col = mix(mirror, spaceSky(pos, normalize(outRay), 7), escape);
             }
             col += vec3(0.8, 0.95, 1.0) * splashFoam(pos.xz) * 0.6;
         }
@@ -423,7 +566,7 @@ void main() {
         col += vec3(0.80, 0.95, 0.90) * dust * stepLen * 0.9;
     } else {
         if (open) {
-            col = spaceSky(dir);
+            col = spaceSky(CameraPos, dir, 14);
         } else {
             col *= mix(0.1, 1.0, Daylight);
             if (abs(pos.y - SurfaceY) < 0.5 && dir.y < 0.0) {
@@ -433,7 +576,7 @@ void main() {
                 vec3 n = normalize(vec3(-slope.x * 2.2, 1.0, -slope.y * 2.2));
                 vec3 seen = texture(DiffuseSampler, uv + n.xz * 0.035).rgb * mix(0.1, 1.0, Daylight);
                 float fresnel = 0.02 + 0.98 * pow(1.0 - max(dot(-dir, n), 0.0), 5.0);
-                vec3 reflected = spaceSky(reflect(dir, n));
+                vec3 reflected = spaceSky(pos, reflect(dir, n), 7);
                 vec3 body = seen * vec3(0.55, 0.85, 0.95) + WATER_DEEP * 2.0 * mix(0.1, 1.0, Daylight);
                 col = mix(body, reflected, clamp(fresnel * 1.2, 0.0, 1.0));
                 col = mix(col, vec3(0.8, 0.95, 1.0) * mix(0.3, 1.0, Daylight), splashFoam(pos.xz) * 0.7);
@@ -489,25 +632,9 @@ void main() {
         }
     }
 
-    if (splashFade > 0.01 && SplashAge < 2.5) {
-        float aspect = OutSize.x / OutSize.y;
-        float bubbles = 0.0;
-        for (int layer = 0; layer < 3; layer++) {
-            float fl = float(layer);
-            vec2 q = texCoord * vec2(aspect, 1.0) * (11.0 + 8.0 * fl);
-            q.y += SplashAge * (1.4 + fl * 0.9);
-            vec2 cell = floor(q);
-            float h = hash(cell + fl * 13.0);
-            vec2 offset = (vec2(hash(cell + 3.1), hash(cell + 7.7)) - 0.5) * 0.5;
-            float d = length(fract(q) - 0.5 - offset);
-            float radius = 0.10 + 0.10 * h;
-            float body = step(0.5, h) * smoothstep(radius, radius - 0.03, d);
-            float rim = step(0.5, h) * smoothstep(radius - 0.035, radius - 0.02, d) * smoothstep(radius + 0.01, radius - 0.01, d);
-            bubbles += body * 0.25 + rim * 0.9;
-        }
-        col += vec3(0.65, 0.9, 1.0) * bubbles * splashFade * 0.6;
-        col = mix(col, vec3(0.7, 0.92, 1.0), 0.4 * splashFade * smoothstep(0.35, 0.0, SplashAge));
-    }
+    col += vec3(0.7, 0.92, 1.0) * bubbleRim * enterFade * 0.8;
+    col = mix(col, vec3(0.6, 0.88, 1.0), 0.25 * enterFade * smoothstep(0.3, 0.0, SplashAge));
+    col += vec3(0.8, 0.95, 1.0) * dropMask * 0.35;
 
     col = 1.0 - exp(-col * mix(2.0, 2.5, Daylight));
     float luma = dot(col, vec3(0.299, 0.587, 0.114));

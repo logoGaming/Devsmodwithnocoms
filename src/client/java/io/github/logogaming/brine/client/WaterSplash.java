@@ -17,6 +17,8 @@ public final class WaterSplash {
     private static double originZ;
     private static float power;
     private static long startTick = Long.MIN_VALUE;
+    private static long exitTick = Long.MIN_VALUE;
+    private static boolean entering;
     private static boolean primed;
     private static boolean wasSubmerged;
     private static double lastVerticalSpeed;
@@ -40,6 +42,18 @@ public final class WaterSplash {
         return originZ;
     }
 
+    public static boolean entering() {
+        return entering;
+    }
+
+    public static float exitAmount(ClientLevel level, float tickDelta) {
+        if (exitTick == Long.MIN_VALUE) {
+            return 0.0f;
+        }
+        float seconds = (level.getGameTime() + tickDelta - exitTick) / 20.0f;
+        return Mth.clamp(1.0f - seconds / 5.0f, 0.0f, 1.0f);
+    }
+
     public static float age(ClientLevel level, float tickDelta) {
         if (startTick == Long.MIN_VALUE) {
             return NO_SPLASH_AGE;
@@ -53,6 +67,7 @@ public final class WaterSplash {
         if (player == null || level == null || level.dimension() != BrineDimensions.BRINE) {
             primed = false;
             startTick = Long.MIN_VALUE;
+            exitTick = Long.MIN_VALUE;
             return;
         }
         boolean submerged = player.getEyeY() < BrineDimensions.SEA_LEVEL - 0.2;
@@ -64,9 +79,11 @@ public final class WaterSplash {
         lastVerticalSpeed = player.getDeltaMovement().y;
     }
 
-    private static void trigger(ClientLevel level, LocalPlayer player, boolean entering) {
+    private static void trigger(ClientLevel level, LocalPlayer player, boolean enteringWater) {
         float strength = (float) Mth.clamp(Math.abs(lastVerticalSpeed) * 1.6 + 0.35, 0.35, 1.5);
-        power = entering ? strength : strength * 0.55f;
+        power = enteringWater ? strength : strength * 0.55f;
+        entering = enteringWater;
+        exitTick = enteringWater ? Long.MIN_VALUE : level.getGameTime();
         originX = player.getX();
         originZ = player.getZ();
         startTick = level.getGameTime();
@@ -79,7 +96,7 @@ public final class WaterSplash {
                     originX + (random.nextDouble() - 0.5) * 1.2, surface + 0.1, originZ + (random.nextDouble() - 0.5) * 1.2,
                     (random.nextDouble() - 0.5) * 0.3, 0.25 + random.nextDouble() * 0.25, (random.nextDouble() - 0.5) * 0.3);
         }
-        if (entering) {
+        if (enteringWater) {
             int bubbles = (int) (power * 24.0f);
             for (int i = 0; i < bubbles; i++) {
                 level.addParticle(ParticleTypes.BUBBLE,

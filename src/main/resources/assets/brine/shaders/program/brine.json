@@ -285,6 +285,22 @@
             "values": [
                 0.0
             ]
+        },
+        {
+            "name": "SplashEnter",
+            "type": "float",
+            "count": 1,
+            "values": [
+                0.0
+            ]
+        },
+        {
+            "name": "ExitWater",
+            "type": "float",
+            "count": 1,
+            "values": [
+                0.0
+            ]
         }
     ]
 }
