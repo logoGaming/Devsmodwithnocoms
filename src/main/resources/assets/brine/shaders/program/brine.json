@@ -259,6 +259,32 @@
                 0.0,
                 -1.0
             ]
+        },
+        {
+            "name": "SplashPos",
+            "type": "float",
+            "count": 3,
+            "values": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "name": "SplashAge",
+            "type": "float",
+            "count": 1,
+            "values": [
+                999.0
+            ]
+        },
+        {
+            "name": "SplashPower",
+            "type": "float",
+            "count": 1,
+            "values": [
+                0.0
+            ]
         }
     ]
 }

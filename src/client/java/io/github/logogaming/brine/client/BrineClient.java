@@ -8,6 +8,8 @@ public class BrineClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         BrineShaders.register();
+        BrineWaterRender.register();
+        WaterSplash.register();
         BrineLogger.info("Client Loading..");
     }
 }

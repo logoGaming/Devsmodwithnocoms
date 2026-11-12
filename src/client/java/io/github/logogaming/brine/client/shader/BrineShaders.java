@@ -1,6 +1,7 @@
 package io.github.logogaming.brine.client.shader;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
+import io.github.logogaming.brine.client.WaterSplash;
 import io.github.logogaming.brine.world.BrineDimensions;
 import net.fabricmc.fabric.api.client.rendering.v1.DimensionRenderingRegistry;
 import net.minecraft.client.Camera;
@@ -35,6 +36,9 @@ public final class BrineShaders {
     private static final Uniform3f LIGHT_DIR = EFFECT.findUniform3f("LightDir");
     private static final Uniform3f SUN_DIR = EFFECT.findUniform3f("SunDir");
     private static final Uniform1f DAYLIGHT = EFFECT.findUniform1f("Daylight");
+    private static final Uniform3f SPLASH_POS = EFFECT.findUniform3f("SplashPos");
+    private static final Uniform1f SPLASH_AGE = EFFECT.findUniform1f("SplashAge");
+    private static final Uniform1f SPLASH_POWER = EFFECT.findUniform1f("SplashPower");
     private static final Uniform4f[] BEAM_POS = new Uniform4f[FlashlightBeams.MAX_BEAMS];
     private static final Uniform3f[] BEAM_DIR = new Uniform3f[FlashlightBeams.MAX_BEAMS];
 
@@ -90,6 +94,10 @@ public final class BrineShaders {
         LIGHT_DIR.set(LIGHT);
         SUN_DIR.set(SUN);
         DAYLIGHT.set(Math.max(0.0f, (float) Mth.smoothstep(Mth.clamp((height + 0.1f) / 0.55f, 0.0f, 1.0f))));
+
+        SPLASH_POS.set((float) WaterSplash.originX(), (float) BrineDimensions.SEA_LEVEL, (float) WaterSplash.originZ());
+        SPLASH_AGE.set(WaterSplash.age(level, tickDelta));
+        SPLASH_POWER.set(WaterSplash.power());
 
         List<FlashlightBeams.Beam> beams = FlashlightBeams.collect(client, camera, tickDelta);
         for (int i = 0; i < FlashlightBeams.MAX_BEAMS; i++) {
