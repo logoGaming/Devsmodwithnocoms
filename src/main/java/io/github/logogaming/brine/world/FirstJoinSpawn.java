@@ -40,6 +40,7 @@ public final class FirstJoinSpawn {
             if (player.isRemoved() || player.hasDisconnected()) {
                 continue;
             }
+            brine.getChunk(0, 0);
             int y = brine.getHeight(Heightmap.Types.OCEAN_FLOOR, 0, 0);
             player.teleportTo(brine, 0.5, y, 0.5, player.getYRot(), player.getXRot());
         }

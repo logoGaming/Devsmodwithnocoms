@@ -11,7 +11,7 @@ public final class BrineDimensions {
             Registries.DIMENSION,
             ResourceLocation.fromNamespaceAndPath("brine", "brine")
     );
-
+    public static final int SEA_LEVEL = 110;
     private BrineDimensions() {
     }
 }
