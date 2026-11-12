@@ -16,25 +16,40 @@ import org.ladysnake.satin.api.managed.ManagedShaderEffect;
 import org.ladysnake.satin.api.managed.ShaderEffectManager;
 import org.ladysnake.satin.api.managed.uniform.Uniform1f;
 import org.ladysnake.satin.api.managed.uniform.Uniform3f;
+import org.ladysnake.satin.api.managed.uniform.Uniform4f;
 import org.ladysnake.satin.api.managed.uniform.UniformMat4;
+
+import java.util.List;
 
 public final class BrineShaders {
 
     private static final ManagedShaderEffect EFFECT = ShaderEffectManager.getInstance()
             .manage(ResourceLocation.fromNamespaceAndPath("brine", "shaders/post/brine.json"));
     private static final UniformMat4 INV_PROJ = EFFECT.findUniformMat4("InvProjMat");
+    private static final UniformMat4 SCREEN_PROJ = EFFECT.findUniformMat4("ScreenProj");
     private static final UniformMat4 CAMERA_ROT = EFFECT.findUniformMat4("CameraRot");
     private static final Uniform3f CAMERA_POS = EFFECT.findUniform3f("CameraPos");
-    private static final Uniform1f TIME = EFFECT.findUniform1f("Time");
+    private static final Uniform1f TIME = EFFECT.findUniform1f("BrineTime");
     private static final Uniform1f SURFACE_Y = EFFECT.findUniform1f("SurfaceY");
     private static final Uniform3f LIGHT_DIR = EFFECT.findUniform3f("LightDir");
+    private static final Uniform3f SUN_DIR = EFFECT.findUniform3f("SunDir");
     private static final Uniform1f DAYLIGHT = EFFECT.findUniform1f("Daylight");
+    private static final Uniform4f[] BEAM_POS = new Uniform4f[FlashlightBeams.MAX_BEAMS];
+    private static final Uniform3f[] BEAM_DIR = new Uniform3f[FlashlightBeams.MAX_BEAMS];
 
     private static final Matrix4f PROJECTION = new Matrix4f();
     private static final Matrix4f INVERSE = new Matrix4f();
     private static final Matrix4f ROTATION = new Matrix4f();
     private static final Vector3f LIGHT = new Vector3f();
+    private static final Vector3f SUN = new Vector3f();
     private static boolean hasProjection;
+
+    static {
+        for (int i = 0; i < FlashlightBeams.MAX_BEAMS; i++) {
+            BEAM_POS[i] = EFFECT.findUniform4f("BeamPos" + i);
+            BEAM_DIR[i] = EFFECT.findUniform3f("BeamDir" + i);
+        }
+    }
 
     private BrineShaders() {
     }
@@ -57,16 +72,33 @@ public final class BrineShaders {
         RenderTarget target = client.getMainRenderTarget();
         EFFECT.setSamplerUniform("DepthSampler", ((ReadableDepthFramebuffer) target).getStillDepthMap());
         EFFECT.setSamplerUniform("LiveDepthSampler", target.getDepthTextureId());
+
         float angle = level.getTimeOfDay(tickDelta) * Mth.TWO_PI;
         float height = Mth.cos(angle);
-        LIGHT.set(Mth.sin(angle) * 0.7f, Math.max(Math.abs(height), 0.25f), 0.25f).normalize();
+        SUN.set(Mth.sin(angle) * 0.9f, height, 0.3f).normalize();
+        LIGHT.set(SUN.x * 0.8f, Math.max(Math.abs(height), 0.3f), SUN.z).normalize();
+
         INV_PROJ.set(PROJECTION.invert(INVERSE));
+        SCREEN_PROJ.set(PROJECTION);
         CAMERA_ROT.set(ROTATION.rotation(camera.rotation()));
         CAMERA_POS.set((float) camera.getPosition().x, (float) camera.getPosition().y, (float) camera.getPosition().z);
         TIME.set((level.getGameTime() + tickDelta) / 20.0f);
         SURFACE_Y.set((float) BrineDimensions.SEA_LEVEL);
         LIGHT_DIR.set(LIGHT);
-        DAYLIGHT.set(Math.max(0.15f, (float) Mth.smoothstep(Mth.clamp((height + 0.15f) / 0.6f, 0.0f, 1.0f))));
+        SUN_DIR.set(SUN);
+        DAYLIGHT.set(Math.max(0.0f, (float) Mth.smoothstep(Mth.clamp((height + 0.1f) / 0.55f, 0.0f, 1.0f))));
+
+        List<FlashlightBeams.Beam> beams = FlashlightBeams.collect(client, camera, tickDelta);
+        for (int i = 0; i < FlashlightBeams.MAX_BEAMS; i++) {
+            if (i < beams.size()) {
+                FlashlightBeams.Beam beam = beams.get(i);
+                BEAM_POS[i].set(beam.position().x, beam.position().y, beam.position().z, 1.0f);
+                BEAM_DIR[i].set(beam.direction());
+            } else {
+                BEAM_POS[i].set(0.0f, 0.0f, 0.0f, 0.0f);
+                BEAM_DIR[i].set(0.0f, 0.0f, -1.0f);
+            }
+        }
         EFFECT.render(tickDelta);
     }
 }
