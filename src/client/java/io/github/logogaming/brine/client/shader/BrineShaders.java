@@ -2,6 +2,7 @@ package io.github.logogaming.brine.client.shader;
 
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import io.github.logogaming.brine.world.BrineDimensions;
+import net.fabricmc.fabric.api.client.rendering.v1.DimensionRenderingRegistry;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -55,6 +56,8 @@ public final class BrineShaders {
     }
 
     public static void register() {
+        DimensionRenderingRegistry.registerCloudRenderer(BrineDimensions.BRINE, context -> {
+        });
         PostWorldRenderCallbackV3.EVENT.register((matrices, modelView, projection, camera, tickDelta) -> {
             PROJECTION.set(projection);
             hasProjection = true;

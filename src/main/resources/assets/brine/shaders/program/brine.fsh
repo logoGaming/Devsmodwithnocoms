@@ -56,27 +56,45 @@ float valueNoise(vec2 p) {
                mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
 }
 
-float caustic(vec2 xz, float depth) {
+vec3 causticRGB(vec2 xz, float depth) {
     float a = 0.0;
     float b = 0.0;
     float c = 0.0;
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 10; i++) {
         float fi = float(i);
-        float ang = fi * 2.399963 + 0.7;
+        float freq = 0.45 * pow(1.34, fi);
+        float ang = 0.6 + sin(fi * 2.7 + 1.0) * 0.95;
         vec2 wave = vec2(cos(ang), sin(ang));
-        float freq = 0.55 + 0.34 * fi;
-        float speed = 0.8 + 0.19 * fi;
-        float amp = 0.34 / (1.0 + fi * 0.75);
-        float phase = dot(xz, wave) * freq + BrineTime * speed + fi * 1.7;
+        float amp = 0.075 * pow(freq, -1.25);
+        float phase = dot(xz, wave) * freq + BrineTime * sqrt(freq) * 1.5 + fi * 1.9;
         float w = -amp * freq * freq * sin(phase);
         a += w * wave.x * wave.x;
         b += w * wave.x * wave.y;
         c += w * wave.y * wave.y;
     }
-    float f = depth * 0.25;
-    float det = (1.0 + f * a) * (1.0 + f * c) - f * f * b * b;
-    float focus = 1.0 / max(abs(det), 0.07);
-    return pow(clamp((focus - 0.8) / 4.5, 0.0, 1.0), 1.25) * 2.4 + 0.06;
+    float soft = 0.05 + depth * 0.0035;
+    vec3 f = vec3(0.2415, 0.2498, 0.2585) * depth;
+    vec3 det = (1.0 + f * a) * (1.0 + f * c) - f * f * b * b;
+    vec3 focus = 1.0 / (abs(det) + soft);
+    return pow(clamp((focus - 0.8) / 5.0, 0.0, 1.0), vec3(1.2)) * 2.3 + 0.05;
+}
+
+float caustic(vec2 xz, float depth) {
+    return causticRGB(xz, depth).g;
+}
+
+float dustField(vec3 p) {
+    vec3 q = p * 3.0 + vec3(sin(BrineTime * 0.21) * 0.6, BrineTime * 0.22, cos(BrineTime * 0.17) * 0.6);
+    vec3 cell = floor(q);
+    vec3 local = fract(q);
+    vec3 id = mod(cell, 289.0);
+    float h = hash3(id);
+    if (h < 0.88) {
+        return 0.0;
+    }
+    vec3 center = vec3(hash3(id + 1.7), hash3(id + 4.1), hash3(id + 9.3));
+    float twinkle = 0.6 + 0.4 * sin(BrineTime * 2.0 + h * 60.0);
+    return smoothstep(0.4, 0.0, length(local - center)) * (0.35 + (h - 0.88) * 5.0) * twinkle;
 }
 
 float shaft(vec2 xz, float depth) {
@@ -88,6 +106,43 @@ float shaft(vec2 xz, float depth) {
 float henyeyGreenstein(float cosTheta, float g) {
     float g2 = g * g;
     return (1.0 - g2) / (12.566 * pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5));
+}
+
+float fbm(vec2 p) {
+    float amplitude = 0.5;
+    float sum = 0.0;
+    for (int i = 0; i < 5; i++) {
+        sum += amplitude * valueNoise(p);
+        p = p * 2.03 + vec2(17.0, 9.0);
+        amplitude *= 0.5;
+    }
+    return sum;
+}
+
+vec4 stratus(vec3 d, vec3 sun, float bright) {
+    if (d.y <= 0.0) {
+        return vec4(0.0);
+    }
+    float h = 1.0 / (d.y + 0.12);
+    vec2 uv = d.xz * h;
+    vec2 wind = vec2(BrineTime * 0.010, BrineTime * 0.003);
+    vec2 toSun = sun.xz * 0.12 * h;
+
+    float coverage = fbm(uv * vec2(0.32, 0.95) + wind);
+    float detail = fbm(uv * vec2(1.1, 3.0) + wind * 2.5);
+    float density = smoothstep(0.40, 0.72, coverage) * (0.55 + 0.75 * detail);
+    float shadowSample = smoothstep(0.40, 0.72, fbm((uv + toSun) * vec2(0.32, 0.95) + wind)) * (0.55 + 0.75 * detail);
+
+    float high = fbm(uv * vec2(0.5, 1.5) * 0.6 + wind * 1.7 + 31.0);
+    float highDensity = smoothstep(0.50, 0.80, high) * 0.45;
+
+    float alpha = clamp(density * 0.85 + highDensity, 0.0, 0.92) * smoothstep(0.0, 0.18, d.y);
+    float lit = clamp(1.0 - (shadowSample - density) * 1.8, 0.25, 1.0);
+    float sunSide = pow(max(dot(d, sun), 0.0), 4.0) * smoothstep(-0.05, 0.2, sun.y);
+    vec3 litCol = mix(vec3(0.55, 0.78, 0.82), vec3(1.0, 0.93, 0.82), sunSide);
+    vec3 shadowCol = vec3(0.12, 0.20, 0.27);
+    vec3 col = mix(shadowCol, litCol, lit) * bright;
+    return vec4(col, alpha);
 }
 
 vec3 spaceSky(vec3 d) {
@@ -142,7 +197,9 @@ vec3 spaceSky(vec3 d) {
         float halo = smoothstep(radius + 0.08, radius, ang);
         col += vec3(0.10, 0.36, 0.46) * halo * halo * 0.7 * mix(0.4, 1.0, Daylight);
     }
-    return col;
+
+    vec4 clouds = stratus(d, sun, mix(0.16, 1.0, Daylight));
+    return mix(col, clouds.rgb, clouds.a);
 }
 
 void main() {
@@ -189,7 +246,7 @@ void main() {
             float depthBelow = SurfaceY - pos.y;
             vec2 surfaceXZ = pos.xz + light.xz * (depthBelow / lightY);
             float lit = max(dot(normal, light), 0.0) * exp(-depthBelow * 0.045) * Daylight;
-            col *= 1.0 + caustic(surfaceXZ, depthBelow) * lit * 2.6;
+            col *= 1.0 + causticRGB(surfaceXZ, depthBelow) * lit * 2.6;
         }
 
         if (!open) {
@@ -224,6 +281,7 @@ void main() {
         float jitter = interleavedNoise(gl_FragCoord.xy);
         float scatter = 0.0;
         float beam = 0.0;
+        float dust = 0.0;
         for (int i = 0; i < SHAFT_STEPS; i++) {
             float t = (float(i) + jitter) / float(SHAFT_STEPS) * marchDist;
             vec3 s = CameraPos + dir * t;
@@ -232,15 +290,24 @@ void main() {
                 vec2 sp = s.xz + light.xz * (below / lightY);
                 scatter += shaft(sp, below) * exp(-below * 0.035);
             }
+            float dustLight = 0.0;
+            if (below > 0.0) {
+                dustLight += exp(-below * 0.05) * rayGain * Daylight * 0.35;
+            }
             for (int b = 0; b < 4; b++) {
                 if (beamPos[b].w > 0.5) {
                     vec3 fromTorch = s - beamPos[b].xyz;
                     float along = dot(fromTorch, beamDir[b]);
                     if (along > 0.0) {
                         float cone = smoothstep(0.88, 0.97, along / length(fromTorch));
-                        beam += cone * exp(-along * 0.05) / (1.0 + along * 0.08);
+                        float weight = cone * exp(-along * 0.05) / (1.0 + along * 0.08);
+                        beam += weight;
+                        dustLight += weight * 2.2;
                     }
                 }
+            }
+            if (dustLight > 0.001 && t < 48.0) {
+                dust += dustField(s) * dustLight * (1.0 - t / 48.0);
             }
         }
         float stepLen = marchDist / float(SHAFT_STEPS);
@@ -249,6 +316,7 @@ void main() {
         float phase = henyeyGreenstein(dot(dir, light), 0.55) * 4.0 + 0.15;
         col += vec3(0.30, 0.82, 0.92) * scatter * phase * rayGain * Daylight * 1.8;
         col += vec3(0.85, 1.0, 0.95) * beam * 0.6;
+        col += vec3(0.80, 0.95, 0.90) * dust * stepLen * 0.9;
     } else {
         if (open) {
             col = spaceSky(dir);
