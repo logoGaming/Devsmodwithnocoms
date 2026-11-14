@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "group": "multi_bench",
+  "key": {
+    "i": {
+      "item": "minecraft:iron_ingot"
+    },
+    "d": {
+      "item": "minecraft:diamond"
+    },
+    "r": {
+      "item": "minecraft:redstone"
+    },
+    "c": {
+      "item": "brine:copper-battery"
+    }
+  },
+  "pattern": [
+    "ici",
+    "iri",
+    "ddd"
+  ],
+  "result": {
+    "count": 1,
+    "id": "brine:iron-oxygen-tank"
+  }
+}

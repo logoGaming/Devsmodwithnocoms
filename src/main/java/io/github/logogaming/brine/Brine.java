@@ -8,10 +8,14 @@ import io.github.logogaming.brine.world.FirstJoinSpawn;
 import net.fabricmc.api.ModInitializer;
 
 public class Brine implements ModInitializer {
+
+    public static final String MOD_ID = "brine";
+
+
     @Override
     public void onInitialize() {
         BrineAttributes.register();
-        BrineItems.register();
+        BrineItems.initialize();
         FirstJoinSpawn.register();
         BrineEntitySpawns.addEntitySpawns();
         BrineLogger.info("Started");

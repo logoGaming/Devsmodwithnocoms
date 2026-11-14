@@ -15,8 +15,6 @@ public class BrineEntitySpawns
 
     public static void addEntitySpawns()
     {
-        BiomeModifications.addSpawn(BiomeSelectors.includeByKey(REEF), MobCategory.CREATURE, EntityType.GLOW_SQUID, 25, 1, 10);
-        BiomeModifications.addSpawn(BiomeSelectors.includeByKey(REEF), MobCategory.CREATURE, EntityType.DROWNED, 10, 1, 3);
-        BiomeModifications.addSpawn(BiomeSelectors.includeByKey(REEF), MobCategory.CREATURE, EntityType.GUARDIAN, 5, 1, 1);
+
     }
 }

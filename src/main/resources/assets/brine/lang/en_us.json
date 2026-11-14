@@ -1,5 +1,15 @@
 {
   "item.brine.flashlight": "Flashlight",
   "attribute.name.brine.max_oxygen": "Maximum Oxygen",
-  "attribute.name.brine.oxygen_drain_rate": "Oxygen Drain Rate"
+  "attribute.name.brine.oxygen_drain_rate": "Oxygen Drain Rate",
+  "item.brine.kelp-oxygen-tank": "Kelp Oxygen Tank",
+  "item.brine.iron-oxygen-tank": "Iron Oxygen Tank",
+  "item.brine.kelp-mask": "Kelp Mask",
+  "item.brine.iron-diving-mask": "Iron Diving Helmet",
+  "item.brine.seashift": "Sea Shift",
+  "item.brine.copper-battery": "Copper Battery",
+  "item.brine.pearl": "Pearl",
+  "brine-items:brine": "Brine Items",
+  "brine-blocks:brine": "Brine Blocks"
+
 }

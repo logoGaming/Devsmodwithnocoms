@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "group": "multi_bench",
+  "key": {
+    "b": {
+      "item": "minecraft:copper_ingot"
+    },
+    "r": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "pattern": [
+    " b ",
+    "brb",
+    " b "
+  ],
+  "result": {
+    "count": 1,
+    "id": "brine:copper-battery"
+  }
+}

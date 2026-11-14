@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "group": "multi_bench",
+  "key": {
+    "b": {
+      "item": "brine:copper-battery"
+    },
+    "p": {
+      "item": "brine:pearl"
+    },
+    "r": {
+      "item": "minecraft:redstone"
+    },
+    "i": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "pattern": [
+    "ipi",
+    "iri",
+    "ibi"
+  ],
+  "result": {
+    "count": 1,
+    "id": "brine:flashlight"
+  }
+}

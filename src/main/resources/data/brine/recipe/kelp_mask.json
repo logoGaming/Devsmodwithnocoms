@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "group": "multi_bench",
+  "key": {
+    "k": {
+      "item": "minecraft:kelp"
+    },
+    "r": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "pattern": [
+    "krk"
+  ],
+  "result": {
+    "count": 1,
+    "id": "brine:kelp-mask"
+  }
+}

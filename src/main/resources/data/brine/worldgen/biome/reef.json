@@ -44,8 +44,27 @@
         "maxCount": 8,
         "minCount": 4,
         "weight": 25
+      },
+      {
+        "type": "minecraft:salmon",
+        "maxCount": 8,
+        "minCount": 4,
+        "weight": 15
+      },
+      {
+        "type": "minecraft:cod",
+        "maxCount": 8,
+        "minCount": 4,
+        "weight": 15
       }
     ],
-    "water_creature": []
+    "water_creature": [
+      {
+        "type": "minecraft:squid",
+        "maxCount": 3,
+        "minCount": 1,
+        "weight": 8
+      }
+    ]
   }
 }

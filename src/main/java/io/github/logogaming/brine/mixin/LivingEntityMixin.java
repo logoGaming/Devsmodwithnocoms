@@ -34,7 +34,6 @@ public abstract class LivingEntityMixin {
             if (player.level().isClientSide)
                 return;
 
-            // Multiply oxygen drate rain by 2% the further you go below sea level
             double yPos = player.getY();
             if (yPos < BrineDimensions.SEA_LEVEL)
             {
@@ -52,7 +51,7 @@ public abstract class LivingEntityMixin {
             int air = player.getAirSupply();
             int maxAir = player.getMaxAirSupply();
 
-            if (air > 0 && air < maxAir * 0.25)
+            if (air > 0 && air < 10)
             {
                 player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 0, true, true, true));
                 player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 40, 0, true, true, true));
