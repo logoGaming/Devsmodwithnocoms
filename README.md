@@ -14,12 +14,12 @@
 
 ## Editors
 
-| # | Editor | Current |
+| # | Contributers | Current |
 |---|--------|:-------:|
 | 1 | R4T    | ✅ |
 | 2 | Ayydxn   | ✅ | 
 | 3 | Logo   | ✅ | 
-| 4 | ???   |    |
+| 4 | Nukebob3   | (～￣▽￣)～)✅ |
 | 5 | ???   |    |
 | 6 | ???   |    | 
 | 7 | ???   |    | 
