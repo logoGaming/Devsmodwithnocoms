@@ -5,12 +5,15 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "EntityMixin",
-    "EntityMixin"
+    "PlayerMixin"
   ],
   "client": [
     "GuiMixin",
+    "HumanoidArmorLayerMixin",
     "ItemRendererMixin",
-    "ModelBakeryMixin"
+    "JoinMultiplayerScreenMixin",
+    "ModelBakeryMixin",
+    "TitleScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

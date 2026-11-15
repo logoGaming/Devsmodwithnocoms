@@ -25,5 +25,7 @@ public abstract class ModelBakeryMixin {
         this.loadItemModelAndDependencies(ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, "flashlight_on")).id());
         this.loadItemModelAndDependencies(ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, "flashlight_hand")).id());
         this.loadItemModelAndDependencies(ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, "flashlight_hand_on")).id());
+        this.loadItemModelAndDependencies(ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, "scuba_helmet")).id());
+        this.loadItemModelAndDependencies(ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, "scuba_helmet_head")).id());
     }
 }

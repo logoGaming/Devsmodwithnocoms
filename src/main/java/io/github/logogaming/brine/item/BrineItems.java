@@ -30,6 +30,12 @@ public final class BrineItems {
             new Item(new Item.Properties().stacksTo(64))
     );
 
+    public static final Item ANCHOR = Registry.register(
+            BuiltInRegistries.ITEM,
+            ResourceLocation.fromNamespaceAndPath("brine", "anchor"),
+            new Item(new Item.Properties().stacksTo(1))
+    );
+
     public static final Item PEARL = Registry.register(
             BuiltInRegistries.ITEM,
             ResourceLocation.fromNamespaceAndPath("brine", "pearl"),
@@ -94,7 +100,7 @@ public final class BrineItems {
                     .durability(ArmorItem.Type.HELMET.getDurability(GearMaterial.IRON_DURABILITY_MULTIPLIER))
                     .component(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.builder()
                             .add(BrineAttributes.OXYGEN_DRAIN_RATE, new AttributeModifier(ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, "iron_diving_mask_oxygen"),
-                                            -0.5,
+                                            -100,
                                             AttributeModifier.Operation.ADD_VALUE),
                                     EquipmentSlotGroup.HEAD)
                             .build())),
@@ -109,8 +115,7 @@ public final class BrineItems {
 
     public static Item register(Item item, String id) {
         ResourceLocation itemID = ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, id);
-        Item registeredItem = Registry.register(BuiltInRegistries.ITEM, itemID, item);
-        return registeredItem;
+        return Registry.register(BuiltInRegistries.ITEM, itemID, item);
     }
 
     public static final ResourceKey<CreativeModeTab> BRINE_ITEMS_KEY = ResourceKey.create(BuiltInRegistries.CREATIVE_MODE_TAB.key(), ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, "brine_items"));
@@ -133,6 +138,7 @@ public final class BrineItems {
             itemGroup.accept(BrineItems.SEASHIFT);
             itemGroup.accept(BrineItems.PEARL);
             itemGroup.accept(BrineItems.COPPERBATTERY);
+            itemGroup.accept(BrineItems.ANCHOR);
         });
 
         GearMaterial.initialize();

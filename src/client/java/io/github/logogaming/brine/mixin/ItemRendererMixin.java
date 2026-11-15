@@ -32,6 +32,8 @@ public abstract class ItemRendererMixin {
         {
             String modelName = FlashlightItem.isOn(stack) ? "flashlight_on" : "flashlight";
             return getItemModelShaper().getModelManager().getModel(ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, modelName)));
+        } else if (stack.is(BrineItems.IRONDIVINGMASK) && (renderMode == ItemDisplayContext.GUI)) {
+            return getItemModelShaper().getModelManager().getModel(ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, "scuba_helmet")));
         }
 
         return model;
@@ -42,6 +44,8 @@ public abstract class ItemRendererMixin {
         if (stack.is(BrineItems.FLASHLIGHT)) {
             String modelName = FlashlightItem.isOn(stack) ? "flashlight_hand_on" : "flashlight_hand";
             return this.itemModelShaper.getModelManager().getModel(ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, modelName)));
+        } else if (stack.is(BrineItems.IRONDIVINGMASK)) {
+            return this.itemModelShaper.getModelManager().getModel(ModelResourceLocation.inventory(ResourceLocation.fromNamespaceAndPath(Brine.MOD_ID, "scuba_helmet_head")));
         }
 
         return bakedModel;

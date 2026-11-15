@@ -1,5 +1,6 @@
 {
   "item.brine.flashlight": "Flashlight",
+  "item.brine.anchor": "Anchor",
   "attribute.name.brine.max_oxygen": "Maximum Oxygen",
   "attribute.name.brine.oxygen_drain_rate": "Oxygen Drain Rate",
   "item.brine.kelp-oxygen-tank": "Kelp Oxygen Tank",

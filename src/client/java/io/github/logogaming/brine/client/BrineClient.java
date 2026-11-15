@@ -1,6 +1,7 @@
 package io.github.logogaming.brine.client;
 
 import io.github.logogaming.brine.client.hud.BrineHud;
+import io.github.logogaming.brine.client.render.BrineRenderTypes;
 import io.github.logogaming.brine.client.render.item.BrineModelPredicates;
 import io.github.logogaming.brine.client.shader.BrineShaders;
 import io.github.logogaming.brine.logging.BrineLogger;
@@ -13,6 +14,7 @@ public class BrineClient implements ClientModInitializer {
         BrineCommands.register();
         BrineModelPredicates.registerModelPredicates();
         BrineShaders.register();
+        BrineRenderTypes.registerShaders();
         BrineHud.register();
         BrineWaterRender.register();
         WaterSplash.register();
