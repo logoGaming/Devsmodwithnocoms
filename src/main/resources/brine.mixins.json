@@ -5,10 +5,12 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "EntityMixin",
-    "LivingEntityMixin"
+    "EntityMixin"
   ],
   "client": [
-    "GuiMixin"
+    "GuiMixin",
+    "ItemRendererMixin",
+    "ModelBakeryMixin"
   ],
   "injectors": {
     "defaultRequire": 1
