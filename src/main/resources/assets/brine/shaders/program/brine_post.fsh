@@ -34,8 +34,8 @@ float interleavedNoise(vec2 p) {
 
 float swellEnergy(vec2 xz) {
     float gust = smoothstep(0.36, 0.64, valueNoise(vec2(BrineTime * 0.035, 11.0)) * 0.6 + valueNoise(vec2(BrineTime * 0.011, 41.0)) * 0.4);
-    float patch = smoothstep(0.25, 0.75, valueNoise(xz * 0.03 + vec2(BrineTime * 0.02, 5.0)));
-    return CalmFloor + (1.0 - CalmFloor) * gust * (0.3 + 0.7 * patch);
+    float swellPatch = smoothstep(0.25, 0.75, valueNoise(xz * 0.03 + vec2(BrineTime * 0.02, 5.0)));
+    return CalmFloor + (1.0 - CalmFloor) * gust * (0.3 + 0.7 * swellPatch);
 }
 
 void main() {

@@ -28,7 +28,7 @@ void main() {
     color *= lightMapColor;
     color.b += 0.1;
     color.g += 0.05;
-    color.rgb-=0.1;
-    color.rgb+=dot(normalYeee, normalize(vec3(1,0.2,0.2)))/2f;
+    color.rgb -= 0.1;
+    color.rgb += dot(normalYeee, normalize(vec3(1.0, 0.2, 0.2))) / 2.0;
     fragColor = linear_fog(color, vertexDistance, FogStart, FogEnd, FogColor);
 }
