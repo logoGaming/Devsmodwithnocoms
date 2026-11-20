@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.17-SNAPSHOT'
+    id 'net.fabricmc.fabric-loom-remap' version '1.19-SNAPSHOT'
     id 'maven-publish'
 }
 
@@ -68,6 +68,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     modCompileOnly "maven.modrinth:sodium:mc1.21.1-0.8.13-fabric"
+    modLocalRuntime "maven.modrinth:sodium:mc1.21.1-0.8.13-fabric"
     modCompileOnly "maven.modrinth:nuit:mc1.21.1-1.0.0-beta.6+fabric"
     compileOnly "de.maxhenkel.voicechat:voicechat-api:2.6.24"
 

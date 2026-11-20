@@ -14,8 +14,7 @@ import java.util.List;
 
 public final class FirstJoinSpawn {
     private static final List<ServerPlayer> PENDING = new ArrayList<>();
-    private FirstJoinSpawn() {
-    }
+
     public static void register() {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ServerPlayer player = handler.getPlayer();

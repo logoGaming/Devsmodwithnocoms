@@ -11,9 +11,6 @@ public final class BrineLogger {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("brine");
 
-    private BrineLogger() {
-    }
-
     public static void debug(String message) {
         LOGGER.debug(format("A8A8A8", message));
     }
@@ -32,7 +29,7 @@ public final class BrineLogger {
 
     private static String format(String messageColorHex, String message) {
         return ansiColor(PREFIX_COLOR_HEX) + PREFIX_TEXT + ANSI_RESET
-                + ansiColor(messageColorHex) + message + ANSI_RESET;
+            + ansiColor(messageColorHex) + message + ANSI_RESET;
     }
 
     private static String ansiColor(String hex) {

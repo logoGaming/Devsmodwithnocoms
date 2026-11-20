@@ -15,15 +15,15 @@ public final class BrineAttributes {
     public static final double DEFAULT_MAX_OXYGEN_TICKS = 300.0;
 
     public static final Holder<Attribute> MAX_OXYGEN = Registry.registerForHolder(
-            BuiltInRegistries.ATTRIBUTE,
-            ResourceLocation.fromNamespaceAndPath("brine", "max_oxygen"),
-            new RangedAttribute("attribute.name.brine.max_oxygen", DEFAULT_MAX_OXYGEN_TICKS, 20.0, 72000.0).setSyncable(true)
+        BuiltInRegistries.ATTRIBUTE,
+        ResourceLocation.fromNamespaceAndPath("brine", "max_oxygen"),
+        new RangedAttribute("attribute.name.brine.max_oxygen", DEFAULT_MAX_OXYGEN_TICKS, 20.0, 72000.0).setSyncable(true)
     );
 
     public static final Holder<Attribute> OXYGEN_DRAIN_RATE = Registry.registerForHolder(
-            BuiltInRegistries.ATTRIBUTE,
-            ResourceLocation.fromNamespaceAndPath("brine", "oxygen_drain_rate"),
-            new RangedAttribute("attribute.name.brine.oxygen_drain_rate", 1.0, 0.0, 100.0).setSyncable(true)
+        BuiltInRegistries.ATTRIBUTE,
+        ResourceLocation.fromNamespaceAndPath("brine", "oxygen_drain_rate"),
+        new RangedAttribute("attribute.name.brine.oxygen_drain_rate", 1.0, 0.0, 100.0).setSyncable(true)
     );
 
     private BrineAttributes() {

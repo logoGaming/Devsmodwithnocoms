@@ -27,32 +27,27 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class LivingEntityMixin {
 
     @Inject(method = "tick", at = @At("HEAD"))
-    public void brine$scaleOxygenDrainWithYLevel(CallbackInfo ci)
-    {
-        if ((Object) this instanceof Player player)
-        {
+    public void brine$scaleOxygenDrainWithYLevel(CallbackInfo ci) {
+        if ((Object) this instanceof Player player) {
             if (player.level().isClientSide)
                 return;
 
             double yPos = player.getY();
-            if (yPos < BrineDimensions.SEA_LEVEL)
-            {
+            if (yPos < BrineDimensions.SEA_LEVEL) {
                 double depthBelowSeaLevel = BrineDimensions.SEA_LEVEL - yPos;
                 double multiplier = depthBelowSeaLevel * 0.02;
 
                 BrineOxygen.addDrainMultiplier(player, ResourceLocation.fromNamespaceAndPath("brine", "oxygen_drain_rate"), multiplier);
-            }
-            else
-            {
+            } else {
                 BrineOxygen.removeDrainModifier(player, ResourceLocation.fromNamespaceAndPath("brine", "oxygen_drain_rate"));
             }
 
+            // TODO: fix this either make comment say what it does, or change code to match comment
             // If oxygen is less than 25%, give slowness and mining fatigue
             int air = player.getAirSupply();
             int maxAir = player.getMaxAirSupply();
 
-            if (air > 0 && air < 10)
-            {
+            if (air > 0 && air < 10) {
                 player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 0, true, true, true));
                 player.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 40, 0, true, true, true));
             }

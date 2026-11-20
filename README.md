@@ -20,7 +20,7 @@
 | 2 | Ayydxn   | ✅ | 
 | 3 | Logo   | ✅ | 
 | 4 | Nukebob3   | (～￣▽￣)～)✅ |
-| 5 | ???   |    |
+| 5 | icanhazsmard| ✅ |
 | 6 | ???   |    | 
 | 7 | ???   |    | 
 | 8 | ???   |    | 
@@ -31,7 +31,7 @@
 
 | Key | Value |
 |---|---|
-| Loader | Fabric (Loom 1.17.21) |
+| Loader | Fabric  |
 | Minecraft | 1.21.1 |
 | Java | 21 |
 | Mod ID | `brine` |
