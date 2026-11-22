@@ -1,0 +1,58 @@
+{
+	"format_version": "26.3",
+	"credit": "Made with Blockbench",
+	"texture_size": [64, 64],
+	"textures": {
+		"0": "brine:item/iron-oxygen-tank",
+		"particle": "brine:item/iron-oxygen-tank"
+	},
+	"elements": [
+		{
+			"name": "body",
+			"from": [4, 0, 4],
+			"to": [12, 17, 12],
+			"rotation": {"angle": 0, "axis": "y", "origin": [5, 0, 6]},
+			"faces": {
+				"north": {"uv": [0, 0, 2, 4.25], "texture": "#0"},
+				"east": {"uv": [2, 0, 4, 4.25], "texture": "#0"},
+				"south": {"uv": [4, 0, 6, 4.25], "texture": "#0"},
+				"west": {"uv": [0, 4.25, 2, 8.5], "texture": "#0"},
+				"up": {"uv": [2, 4.25, 4, 6.25], "texture": "#0"},
+				"down": {"uv": [4, 4.25, 6, 6.25], "texture": "#0"}
+			}
+		},
+		{
+			"name": "neck",
+			"from": [6, 17, 6],
+			"to": [10, 20, 10],
+			"rotation": {"angle": 0, "axis": "y", "origin": [7, 3, 7]},
+			"faces": {
+				"north": {"uv": [6, 5.5, 7, 6.25], "texture": "#0"},
+				"east": {"uv": [2, 6.25, 3, 7], "texture": "#0"},
+				"south": {"uv": [3, 6.25, 4, 7], "texture": "#0"},
+				"west": {"uv": [4, 6.25, 5, 7], "texture": "#0"},
+				"up": {"uv": [6, 3.5, 7, 4.5], "texture": "#0"},
+				"down": {"uv": [6, 4.5, 7, 5.5], "texture": "#0"}
+			}
+		},
+		{
+			"name": "flap",
+			"from": [5.5, 19.6, 4.5],
+			"to": [10.5, 20.6, 11.5],
+			"rotation": {"angle": 5, "axis": "x", "origin": [6.5, 5.6, 5.5]},
+			"faces": {
+				"north": {"uv": [5, 6.75, 6.25, 7], "texture": "#0"},
+				"east": {"uv": [5, 6.25, 6.75, 6.5], "texture": "#0"},
+				"south": {"uv": [6.25, 6.75, 7.5, 7], "texture": "#0"},
+				"west": {"uv": [5, 6.5, 6.75, 6.75], "texture": "#0"},
+				"up": {"uv": [6, 0, 7.25, 1.75], "texture": "#0"},
+				"down": {"uv": [6, 1.75, 7.25, 3.5], "texture": "#0"}
+			}
+		}
+	],
+	"display": {
+		"head": {
+			"translation": [0, -19.5, 6]
+		}
+	}
+}

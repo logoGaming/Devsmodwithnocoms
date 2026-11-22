@@ -2,6 +2,7 @@ package io.github.logogaming.brine.item;
 
 import io.github.logogaming.brine.Brine;
 import io.github.logogaming.brine.effect.BrineEffects;
+import io.github.logogaming.brine.entity.ModEntityTypes;
 import io.github.logogaming.brine.oxygen.BrineAttributes;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
@@ -93,6 +94,7 @@ public final class BrineItems {
                 .build()))
     );
 
+    // model is in files but I couldn't get it to render
     public static final Item IRONOXYGENTANK = register(
         "iron-oxygen-tank",
         new ArmorItem(GearMaterial.IRONG, ArmorItem.Type.CHESTPLATE, new Item.Properties()
@@ -134,9 +136,23 @@ public final class BrineItems {
                 .build()))
     );
 
+    public static final Item CLAM_SPAWN_EGG = Registry.register(
+            BuiltInRegistries.ITEM,
+            Brine.id("clam_spawn_egg"),
+            new SpawnEggItem(ModEntityTypes.CLAM, 0x000075, 0x8A8AFF, new Item.Properties())
+    );
 
-    private BrineItems() {
-    }
+    public static final Item BARNACLE_ROD = Registry.register(
+            BuiltInRegistries.ITEM,
+            Brine.id("barnacle_rod"),
+            new FishingRodItem(new Item.Properties().durability(128))
+    );
+
+    public static final Item IRON_ROD = Registry.register(
+            BuiltInRegistries.ITEM,
+            Brine.id("iron_rod"),
+            new FishingRodItem(new Item.Properties().durability(300))
+    );
 
     private static @NotNull Item register(String id, Item item) {
         return Registry.register(
@@ -168,6 +184,9 @@ public final class BrineItems {
             itemGroup.accept(BrineItems.ANCHOR);
             itemGroup.accept(BrineItems.BRIO_COLA);
             itemGroup.accept(BrineItems.LIFE_PRESERVER);
+            itemGroup.accept(BrineItems.CLAM_SPAWN_EGG);
+            itemGroup.accept(BrineItems.BARNACLE_ROD);
+            itemGroup.accept(BrineItems.IRON_ROD);
         });
 
         GearMaterial.initialize();

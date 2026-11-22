@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:fishing",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "rolls": 1.0,
+      "entries": [
+        { "type": "minecraft:item", "name": "minecraft:cobblestone",      "weight": 40 },
+        { "type": "minecraft:item", "name": "minecraft:stripped_oak_log", "weight": 25 },
+        { "type": "minecraft:item", "name": "minecraft:coal",             "weight": 15 },
+        { "type": "minecraft:item", "name": "minecraft:iron_nugget",      "weight": 8 },
+        { "type": "minecraft:item", "name": "minecraft:copper_ingot",      "weight": 3 },
+        { "type": "minecraft:item", "name": "minecraft:mangrove_propagule",      "weight": 2 }
+      ]
+    }
+  ],
+  "random_sequence": "brine:gameplay/fishing/iron_rod"
+}

@@ -5,10 +5,14 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "EntityMixin",
+    "FishingHookMixin",
     "LivingEntityMixin",
-    "PlayerMixin"
+    "MangrovePropaguleBlockMixin",
+    "PlayerMixin",
+    "SaplingBlockMixin"
   ],
   "client": [
+    "FishingHookRendererMixin",
     "GuiMixin",
     "HumanoidArmorLayerMixin",
     "ItemRendererMixin",

@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/handheld_rod",
+  "textures": { "layer0": "brine:item/barnacle_rod" },
+  "overrides": [
+    { "predicate": { "cast": 1 }, "model": "brine:item/barnacle_rod_cast" }
+  ]
+}

@@ -46,8 +46,8 @@ public final class FirstJoinSpawn {
                 continue;
             }
             brine.getChunk(0, 0);
-            int y = brine.getHeight(Heightmap.Types.OCEAN_FLOOR, 0, 0);
-            player.teleportTo(brine, 0.5, y, 0.5, player.getYRot(), player.getXRot());
+            int y = 111;
+            player.teleportTo(brine, 1.5, y, -1.5, player.getYRot(), player.getXRot());
         }
     }
 }
